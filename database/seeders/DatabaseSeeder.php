@@ -15,7 +15,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        
+        $this->call([
+            RoleSeeder::class,  
+            PermissionSeeder::class,
+        ]);
 
         $user = User::updateOrCreate([
             'name' => 'Admin',
@@ -25,11 +29,8 @@ class DatabaseSeeder extends Seeder
             'gender' => 'male',
             'password' => bcrypt('123456'),
         ]);
+
         $user->assignRole('admin');
 
-        $this->call([
-            RoleSeeder::class,  
-            PermissionSeeder::class,
-        ]);
     }
 }

@@ -1,13 +1,9 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-<<<<<<< HEAD
 use Illuminate\Http\Request;
-=======
 use App\Http\Controllers\ReceptionistController;
 use App\Http\Controllers\ReservationController;
-use Illuminate\Foundation\Application;
->>>>>>> 611f1edc4f2ed0973715d150dc1bc2e3409a6850
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -30,8 +26,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-<<<<<<< HEAD
-=======
 
     Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
     Route::get('/reservations/create', [ReservationController::class, 'create'])->name('reservations.create');
@@ -43,7 +37,6 @@ Route::middleware('auth')->group(function () {
         Route::put('/receptionists/{receptionist}', [ReceptionistController::class, 'update'])->name('receptionists.update');
         Route::delete('/receptionists/{receptionist}', [ReceptionistController::class, 'destroy'])->name('receptionists.destroy');
     });
->>>>>>> 611f1edc4f2ed0973715d150dc1bc2e3409a6850
 });
 
 //add the route in the gruop  depend on the role

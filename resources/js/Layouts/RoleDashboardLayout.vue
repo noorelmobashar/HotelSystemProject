@@ -1,145 +1,191 @@
 <script setup>
-import { computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
-import RoleSidebarIcon from '@/Components/RoleSidebarIcon.vue';
+import { computed } from "vue";
+import { Link, usePage } from "@inertiajs/vue3";
+import RoleSidebarIcon from "@/Components/RoleSidebarIcon.vue";
 
 const page = usePage();
-const hotelName = 'Aurora Grand Hotel';
+const hotelName = "Aurora Grand Hotel";
 
 const roleLayouts = {
     admin: {
-        roleLabel: 'Hotel Administrator',
-        brandCaptionClass: 'text-sky-500',
-        badgeGradient: 'from-cyan-500 to-blue-500',
-        activeItemClass: 'border-sky-200 bg-sky-50/90',
-        activeIconClass: 'bg-sky-100 text-sky-700',
-        activeTitleClass: 'text-sky-700',
-        activeSubtitleClass: 'text-sky-400',
+        roleLabel: "Hotel Administrator",
+        brandCaptionClass: "text-sky-500",
+        badgeGradient: "from-cyan-500 to-blue-500",
+        activeItemClass: "border-sky-200 bg-sky-50/90",
+        activeIconClass: "bg-sky-100 text-sky-700",
+        activeTitleClass: "text-sky-700",
+        activeSubtitleClass: "text-sky-400",
         menu: [
-            { label: 'Overview', subtitle: 'Portfolio health', icon: 'overview' },
             {
-                label: 'Manage Managers',
-                subtitle: 'Leadership accounts',
-                icon: 'managers',
+                label: "Overview",
+                subtitle: "Portfolio health",
+                icon: "overview",
+                key: "overview",
             },
             {
-                label: 'Manage Receptionists',
-                subtitle: 'Desk staffing',
-                icon: 'receptionists',
-            },
-            { label: 'Manage Clients', subtitle: 'Guest approvals', icon: 'clients' },
-            { label: 'Manage Floors', subtitle: 'Hotel structure', icon: 'floors' },
-            { label: 'Manage Rooms', subtitle: 'Rates and capacity', icon: 'rooms' },
-            {
-                label: 'Approved Clients',
-                subtitle: 'Reception handoff',
-                icon: 'approved',
+                label: "Manage Managers",
+                subtitle: "Leadership accounts",
+                icon: "managers",
             },
             {
-                label: 'Client Reservations',
-                subtitle: 'Paid stays',
-                icon: 'reservations',
+                label: "Manage Receptionists",
+                subtitle: "Desk staffing",
+                icon: "receptionists",
             },
             {
-                label: 'Statistics',
-                subtitle: 'Business intelligence',
-                icon: 'stats',
+                label: "Manage Clients",
+                subtitle: "Guest approvals",
+                icon: "clients",
+            },
+            {
+                label: "Manage Floors",
+                subtitle: "Hotel structure",
+                icon: "floors",
+                key: "floors",
+            },
+            {
+                label: "Manage Rooms",
+                subtitle: "Rates and capacity",
+                icon: "rooms",
+            },
+            {
+                label: "Approved Clients",
+                subtitle: "Reception handoff",
+                icon: "approved",
+            },
+            {
+                label: "Client Reservations",
+                subtitle: "Paid stays",
+                icon: "reservations",
+            },
+            {
+                label: "Statistics",
+                subtitle: "Business intelligence",
+                icon: "stats",
             },
         ],
     },
     manager: {
-        roleLabel: 'Property Manager',
-        brandCaptionClass: 'text-teal-500',
-        badgeGradient: 'from-emerald-500 to-cyan-500',
-        activeItemClass: 'border-teal-200 bg-teal-50/90',
-        activeIconClass: 'bg-teal-100 text-teal-700',
-        activeTitleClass: 'text-teal-700',
-        activeSubtitleClass: 'text-teal-400',
+        roleLabel: "Property Manager",
+        brandCaptionClass: "text-teal-500",
+        badgeGradient: "from-emerald-500 to-cyan-500",
+        activeItemClass: "border-teal-200 bg-teal-50/90",
+        activeIconClass: "bg-teal-100 text-teal-700",
+        activeTitleClass: "text-teal-700",
+        activeSubtitleClass: "text-teal-400",
         menu: [
-            { label: 'Overview', subtitle: 'Property command', icon: 'overview' },
             {
-                label: 'Manage Receptionists',
-                subtitle: 'Desk staffing',
-                icon: 'receptionists',
+                label: "Overview",
+                subtitle: "Property command",
+                icon: "overview",
+                key: "overview",
             },
-            { label: 'Manage Clients', subtitle: 'Guest records', icon: 'clients' },
             {
-                label: 'Manage Floors',
-                subtitle: 'Structure and numbering',
-                icon: 'floors',
+                label: "Manage Receptionists",
+                subtitle: "Desk staffing",
+                icon: "receptionists",
             },
-            { label: 'Manage Rooms', subtitle: 'Rates and capacity', icon: 'rooms' },
             {
-                label: 'Statistics',
-                subtitle: 'Business intelligence',
-                icon: 'stats',
+                label: "Manage Clients",
+                subtitle: "Guest records",
+                icon: "clients",
+            },
+            {
+                label: "Manage Floors",
+                subtitle: "Structure and numbering",
+                icon: "floors",
+                key: "floors",
+            },
+            {
+                label: "Manage Rooms",
+                subtitle: "Rates and capacity",
+                icon: "rooms",
+            },
+            {
+                label: "Statistics",
+                subtitle: "Business intelligence",
+                icon: "stats",
             },
         ],
     },
     receptionist: {
-        roleLabel: 'Front Desk Receptionist',
-        brandCaptionClass: 'text-orange-500',
-        badgeGradient: 'from-amber-500 to-orange-500',
-        activeItemClass: 'border-amber-200 bg-amber-50/90',
-        activeIconClass: 'bg-amber-100 text-amber-700',
-        activeTitleClass: 'text-amber-700',
-        activeSubtitleClass: 'text-amber-400',
+        roleLabel: "Front Desk Receptionist",
+        brandCaptionClass: "text-orange-500",
+        badgeGradient: "from-amber-500 to-orange-500",
+        activeItemClass: "border-amber-200 bg-amber-50/90",
+        activeIconClass: "bg-amber-100 text-amber-700",
+        activeTitleClass: "text-amber-700",
+        activeSubtitleClass: "text-amber-400",
         menu: [
-            { label: 'Overview', subtitle: 'Desk command', icon: 'overview' },
-            { label: 'Manage Clients', subtitle: 'Pending approvals', icon: 'clients' },
             {
-                label: 'My Approved Clients',
-                subtitle: 'Approved guests',
-                icon: 'approved',
+                label: "Overview",
+                subtitle: "Desk command",
+                icon: "overview",
+                key: "overview",
             },
             {
-                label: 'Clients Reservations',
-                subtitle: 'Paid stays',
-                icon: 'reservations',
+                label: "Manage Clients",
+                subtitle: "Pending approvals",
+                icon: "clients",
+            },
+            {
+                label: "My Approved Clients",
+                subtitle: "Approved guests",
+                icon: "approved",
+            },
+            {
+                label: "Clients Reservations",
+                subtitle: "Paid stays",
+                icon: "reservations",
             },
         ],
     },
     client: {
-        roleLabel: 'Approved Client',
-        brandCaptionClass: 'text-violet-500',
-        badgeGradient: 'from-fuchsia-500 to-violet-500',
-        activeItemClass: 'border-violet-200 bg-violet-50/90',
-        activeIconClass: 'bg-violet-100 text-violet-700',
-        activeTitleClass: 'text-violet-700',
-        activeSubtitleClass: 'text-violet-400',
+        roleLabel: "Approved Client",
+        brandCaptionClass: "text-violet-500",
+        badgeGradient: "from-fuchsia-500 to-violet-500",
+        activeItemClass: "border-violet-200 bg-violet-50/90",
+        activeIconClass: "bg-violet-100 text-violet-700",
+        activeTitleClass: "text-violet-700",
+        activeSubtitleClass: "text-violet-400",
         menu: [
-            { label: 'Overview', subtitle: 'Guest workspace', icon: 'overview' },
             {
-                label: 'Make Reservation',
-                subtitle: 'Available rooms',
-                icon: 'reservation',
+                label: "Overview",
+                subtitle: "Guest workspace",
+                icon: "overview",
+                key: "overview",
             },
             {
-                label: 'My Reservations',
-                subtitle: 'Current and past stays',
-                icon: 'reservations',
+                label: "Make Reservation",
+                subtitle: "Available rooms",
+                icon: "reservation",
+            },
+            {
+                label: "My Reservations",
+                subtitle: "Current and past stays",
+                icon: "reservations",
             },
         ],
     },
 };
 
 const currentRole = computed(() => {
-    const role = String(page.props.auth?.role ?? '').toLowerCase();
+    const role = String(page.props.auth?.role ?? "").toLowerCase();
 
-    return roleLayouts[role] ? role : 'admin';
+    return roleLayouts[role] ? role : "admin";
 });
 
 const roleLayout = computed(() => roleLayouts[currentRole.value]);
 
 const user = computed(() => page.props.auth?.user ?? {});
 
-const userEmail = computed(() => user.value?.email || 'user@hotel.com');
+const userEmail = computed(() => user.value?.email || "user@hotel.com");
 
 const roleInitials = computed(() => {
-    const roleLabel = String(roleLayout.value.roleLabel ?? '').trim();
+    const roleLabel = String(roleLayout.value.roleLabel ?? "").trim();
 
     if (!roleLabel) {
-        return 'HC';
+        return "HC";
     }
 
     const pieces = roleLabel.split(/\s+/).filter(Boolean);
@@ -147,14 +193,32 @@ const roleInitials = computed(() => {
     return pieces
         .slice(0, 2)
         .map((piece) => piece.charAt(0).toUpperCase())
-        .join('');
+        .join("");
 });
 
+const currentPath = computed(() => String(page.url ?? "").split("?")[0]);
+
+const itemRoutes = {
+    overview: {
+        href: () => route("dashboard"),
+        active: (path) => path === "/dashboard",
+    },
+    floors: {
+        href: () => route("floors.index"),
+        active: (path) => path.startsWith("/floors"),
+    },
+};
+
 const sidebarItems = computed(() =>
-    roleLayout.value.menu.map((item, index) => ({
-        ...item,
-        active: index === 0,
-    })),
+    roleLayout.value.menu.map((item) => {
+        const routeMeta = item.key ? itemRoutes[item.key] : null;
+
+        return {
+            ...item,
+            href: routeMeta ? routeMeta.href() : null,
+            active: routeMeta ? routeMeta.active(currentPath.value) : false,
+        };
+    }),
 );
 </script>
 
@@ -183,7 +247,9 @@ const sidebarItems = computed(() =>
                         >
                             Hotel Workspace
                         </p>
-                        <p class="text-xl font-semibold leading-tight text-slate-900">
+                        <p
+                            class="text-xl font-semibold leading-tight text-slate-900"
+                        >
                             {{ hotelName }}
                         </p>
                     </div>
@@ -203,7 +269,9 @@ const sidebarItems = computed(() =>
                         </div>
 
                         <div class="min-w-0">
-                            <p class="truncate text-[17px] font-semibold leading-tight text-slate-700">
+                            <p
+                                class="truncate text-[17px] font-semibold leading-tight text-slate-700"
+                            >
                                 {{ roleLayout.roleLabel }}
                             </p>
                             <p class="truncate text-sm text-slate-500">
@@ -214,15 +282,19 @@ const sidebarItems = computed(() =>
                 </div>
 
                 <div class="mt-8">
-                    <p class="px-2 text-[11px] uppercase tracking-[0.35em] text-slate-400">
+                    <p
+                        class="px-2 text-[11px] uppercase tracking-[0.35em] text-slate-400"
+                    >
                         Workspace
                     </p>
 
                     <nav class="mt-2 space-y-1.5">
-                        <button
+                        <component
                             v-for="item in sidebarItems"
                             :key="item.label"
-                            type="button"
+                            :is="item.href ? Link : 'button'"
+                            :href="item.href || undefined"
+                            :type="item.href ? undefined : 'button'"
                             :class="[
                                 'group flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200',
                                 item.active
@@ -263,7 +335,7 @@ const sidebarItems = computed(() =>
                                     {{ item.subtitle }}
                                 </span>
                             </span>
-                        </button>
+                        </component>
                     </nav>
                 </div>
 
@@ -290,7 +362,9 @@ const sidebarItems = computed(() =>
 
             <main class="hidden flex-1 md:block">
                 <slot>
-                    <div class="h-full bg-gradient-to-br from-slate-100 via-slate-100 to-slate-200/60" />
+                    <div
+                        class="h-full bg-gradient-to-br from-slate-100 via-slate-100 to-slate-200/60"
+                    />
                 </slot>
             </main>
         </div>

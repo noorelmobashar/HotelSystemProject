@@ -1,0 +1,406 @@
+<script setup>
+import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { Head, Link, router } from "@inertiajs/vue3";
+import {
+    FlexRender,
+    createColumnHelper,
+    getCoreRowModel,
+    useVueTable,
+} from "@tanstack/vue-table";
+import RoleDashboardLayout from "@/Layouts/RoleDashboardLayout.vue";
+
+const props = defineProps({
+    floors: {
+        type: Object,
+        default: () => ({
+            data: [],
+            current_page: 1,
+            last_page: 1,
+            per_page: 10,
+            total: 0,
+            from: 0,
+            to: 0,
+        }),
+    },
+    filters: {
+        type: Object,
+        default: () => ({
+            search: "",
+            per_page: 10,
+        }),
+    },
+    isAdmin: {
+        type: Boolean,
+        default: false,
+    },
+});
+
+const rows = computed(() =>
+    Array.isArray(props.floors?.data) ? props.floors.data : [],
+);
+
+const meta = computed(() => ({
+    currentPage: Number(props.floors?.current_page ?? 1),
+    lastPage: Number(props.floors?.last_page ?? 1),
+    perPage: Number(props.floors?.per_page ?? 10),
+    total: Number(props.floors?.total ?? 0),
+    from: Number(props.floors?.from ?? 0),
+    to: Number(props.floors?.to ?? 0),
+}));
+
+const search = ref(String(props.filters?.search ?? ""));
+const perPage = ref(Number(props.filters?.per_page ?? meta.value.perPage));
+const loading = ref(false);
+const isAdmin = computed(() => Boolean(props.isAdmin));
+const hasManageableRows = computed(() =>
+    rows.value.some((row) => Boolean(row.can_manage)),
+);
+
+const columnHelper = createColumnHelper();
+
+const columns = computed(() => {
+    const baseColumns = [
+        columnHelper.accessor("name", {
+            header: "Name",
+            cell: (info) => info.getValue() ?? "-",
+        }),
+        columnHelper.accessor("number", {
+            header: "Number",
+            cell: (info) => info.getValue() ?? "-",
+        }),
+    ];
+
+    if (isAdmin.value) {
+        baseColumns.push(
+            columnHelper.accessor("manager_name", {
+                header: "Manager Name",
+                cell: (info) => info.getValue() ?? "-",
+            }),
+        );
+    }
+
+    if (isAdmin.value || hasManageableRows.value) {
+        baseColumns.push(
+            columnHelper.display({
+                id: "actions",
+                header: "Actions",
+                cell: ({ row }) => row.original,
+            }),
+        );
+    }
+
+    return baseColumns;
+});
+
+const table = useVueTable({
+    get data() {
+        return rows.value;
+    },
+    get columns() {
+        return columns.value;
+    },
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    get pageCount() {
+        return meta.value.lastPage;
+    },
+});
+
+const queryParams = (page) => ({
+    page,
+    search: search.value || undefined,
+    per_page: perPage.value,
+});
+
+const loadPage = (page) => {
+    loading.value = true;
+
+    router.get(route("floors.index"), queryParams(page), {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        onFinish: () => {
+            loading.value = false;
+        },
+    });
+};
+
+watch(perPage, () => {
+    loadPage(1);
+});
+
+let searchDebounce = null;
+
+watch(search, () => {
+    clearTimeout(searchDebounce);
+
+    searchDebounce = setTimeout(() => {
+        loadPage(1);
+    }, 350);
+});
+
+onBeforeUnmount(() => {
+    clearTimeout(searchDebounce);
+});
+</script>
+
+<template>
+    <Head title="Manage Floors" />
+
+    <RoleDashboardLayout>
+        <section class="relative h-full overflow-y-auto">
+            <div class="pointer-events-none absolute inset-0">
+                <div
+                    class="absolute -top-16 right-6 h-40 w-40 rounded-full bg-cyan-200/40 blur-3xl"
+                />
+                <div
+                    class="absolute bottom-2 left-10 h-40 w-40 rounded-full bg-emerald-200/40 blur-3xl"
+                />
+            </div>
+
+            <div class="relative mx-auto max-w-6xl px-6 py-8 md:py-10">
+                <div
+                    class="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.8)] backdrop-blur-sm"
+                >
+                    <p
+                        class="text-[11px] font-semibold uppercase tracking-[0.35em] text-cyan-600"
+                    >
+                        Hotel Structure
+                    </p>
+                    <div
+                        class="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
+                    >
+                        <div>
+                            <h1 class="text-3xl font-semibold text-slate-900">
+                                Floor Management
+                            </h1>
+                            <p class="mt-1 text-sm text-slate-500">
+                                Managers can manage only their floors. Admin can
+                                manage all floors.
+                            </p>
+                        </div>
+
+                        <div
+                            class="flex w-full flex-col gap-3 sm:flex-row md:w-auto"
+                        >
+                            <input
+                                v-model="search"
+                                type="text"
+                                placeholder="Search by floor name or number"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:w-64"
+                            />
+
+                            <select
+                                v-model.number="perPage"
+                                class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
+                            >
+                                <option :value="10">10 / page</option>
+                                <option :value="25">25 / page</option>
+                                <option :value="50">50 / page</option>
+                            </select>
+
+                            <Link
+                                :href="route('floors.create')"
+                                class="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-semibold text-cyan-700 transition-colors duration-200 hover:bg-cyan-100"
+                            >
+                                Add Floor
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 grid gap-4 md:grid-cols-3">
+                    <div
+                        class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                    >
+                        <p
+                            class="text-xs uppercase tracking-[0.24em] text-slate-400"
+                        >
+                            Total Floors
+                        </p>
+                        <p class="mt-2 text-3xl font-semibold text-slate-800">
+                            {{ meta.total }}
+                        </p>
+                    </div>
+
+                    <div
+                        class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                    >
+                        <p
+                            class="text-xs uppercase tracking-[0.24em] text-slate-400"
+                        >
+                            Current Page
+                        </p>
+                        <p class="mt-2 text-3xl font-semibold text-slate-800">
+                            {{ meta.currentPage }}
+                        </p>
+                    </div>
+
+                    <div
+                        class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                    >
+                        <p
+                            class="text-xs uppercase tracking-[0.24em] text-slate-400"
+                        >
+                            Rows Per Page
+                        </p>
+                        <p class="mt-2 text-3xl font-semibold text-slate-800">
+                            {{ meta.perPage }}
+                        </p>
+                    </div>
+                </div>
+
+                <div
+                    class="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+                >
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200">
+                            <thead class="bg-slate-50">
+                                <tr
+                                    v-for="headerGroup in table.getHeaderGroups()"
+                                    :key="headerGroup.id"
+                                >
+                                    <th
+                                        v-for="header in headerGroup.headers"
+                                        :key="header.id"
+                                        class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+                                        :class="{
+                                            'text-right':
+                                                header.column.id === 'actions',
+                                        }"
+                                    >
+                                        <FlexRender
+                                            v-if="!header.isPlaceholder"
+                                            :render="
+                                                header.column.columnDef.header
+                                            "
+                                            :props="header.getContext()"
+                                        />
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                <tr v-if="!table.getRowModel().rows.length">
+                                    <td
+                                        :colspan="
+                                            table.getVisibleLeafColumns().length
+                                        "
+                                        class="px-5 py-10 text-center text-sm text-slate-500"
+                                    >
+                                        No floors returned from server.
+                                    </td>
+                                </tr>
+
+                                <tr
+                                    v-for="row in table.getRowModel().rows"
+                                    :key="row.id"
+                                    class="hover:bg-slate-50/80"
+                                >
+                                    <td
+                                        v-for="cell in row.getVisibleCells()"
+                                        :key="cell.id"
+                                        class="whitespace-nowrap px-5 py-4 text-sm text-slate-600"
+                                        :class="{
+                                            'text-right':
+                                                cell.column.id === 'actions',
+                                            'font-medium text-slate-700':
+                                                cell.column.id === 'number',
+                                        }"
+                                    >
+                                        <template
+                                            v-if="cell.column.id === 'actions'"
+                                        >
+                                            <div class="inline-flex gap-2">
+                                                <template
+                                                    v-if="
+                                                        cell.row.original
+                                                            ?.can_manage
+                                                    "
+                                                >
+                                                    <Link
+                                                        :href="
+                                                            route(
+                                                                'floors.edit',
+                                                                cell.row
+                                                                    .original
+                                                                    .id,
+                                                            )
+                                                        "
+                                                        class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-100"
+                                                    >
+                                                        Edit
+                                                    </Link>
+                                                    <Link
+                                                        :href="
+                                                            route(
+                                                                'floors.destroy',
+                                                                cell.row
+                                                                    .original
+                                                                    .id,
+                                                            )
+                                                        "
+                                                        method="delete"
+                                                        as="button"
+                                                        class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-600 transition-colors duration-200 hover:bg-rose-100"
+                                                    >
+                                                        Delete
+                                                    </Link>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <template v-else>
+                                            <FlexRender
+                                                :render="
+                                                    cell.column.columnDef.cell
+                                                "
+                                                :props="cell.getContext()"
+                                            />
+                                        </template>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div
+                        class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/80 px-5 py-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                        <p class="text-sm text-slate-500">
+                            Showing {{ meta.from }} to {{ meta.to }} of
+                            {{ meta.total }} floors.
+                        </p>
+
+                        <div class="inline-flex items-center gap-2">
+                            <button
+                                type="button"
+                                :disabled="meta.currentPage <= 1 || loading"
+                                @click="loadPage(meta.currentPage - 1)"
+                                class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Previous
+                            </button>
+
+                            <span class="text-sm font-medium text-slate-600">
+                                Page {{ meta.currentPage }} /
+                                {{ meta.lastPage }}
+                            </span>
+
+                            <button
+                                type="button"
+                                :disabled="
+                                    meta.currentPage >= meta.lastPage || loading
+                                "
+                                @click="loadPage(meta.currentPage + 1)"
+                                class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </RoleDashboardLayout>
+</template>

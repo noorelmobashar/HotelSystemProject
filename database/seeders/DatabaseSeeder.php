@@ -61,6 +61,9 @@ class DatabaseSeeder extends Seeder
         ]);
         $client->assignRole('client');
 
+        $this->call([
+            FloorSeeder::class,
+        ]);
 
     }
 }

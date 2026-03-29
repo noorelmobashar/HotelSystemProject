@@ -39,7 +39,7 @@ const roleLayouts = {
                 label: 'Manage Receptionists',
                 subtitle: 'Desk staffing',
                 icon: 'receptionists',
-                routeName: null,
+                routeName: 'receptionists.index',
             },
             {
                 label: 'Manage Clients',
@@ -98,7 +98,7 @@ const roleLayouts = {
                 label: 'Manage Receptionists',
                 subtitle: 'Desk staffing',
                 icon: 'receptionists',
-                routeName: null,
+                routeName: 'receptionists.index',
             },
             {
                 label: 'Manage Clients',
@@ -204,6 +204,20 @@ const user = computed(() => page.props.auth?.user ?? {});
 
 const userEmail = computed(() => user.value?.email || 'user@hotel.com');
 
+const userAvatarUrl = computed(() => {
+    const avatar = user.value?.avatar_image;
+
+    if (!avatar) {
+        return null;
+    }
+
+    if (String(avatar).startsWith('http')) {
+        return avatar;
+    }
+
+    return `/storage/${avatar}`;
+});
+
 const roleInitials = computed(() => {
     const roleLabel = String(roleLayout.value.roleLabel ?? '').trim();
 
@@ -282,11 +296,17 @@ const sidebarItems = computed(() =>
                     <div class="flex items-center gap-3">
                         <div
                             :class="[
-                                'flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-base font-semibold text-white',
+                                'flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br text-base font-semibold text-white',
                                 roleLayout.badgeGradient,
                             ]"
                         >
-                            {{ roleInitials }}
+                            <img
+                                v-if="userAvatarUrl"
+                                :src="userAvatarUrl"
+                                :alt="`${roleLayout.roleLabel} avatar`"
+                                class="h-full w-full object-cover"
+                            >
+                            <span v-else>{{ roleInitials }}</span>
                         </div>
 
                         <div class="min-w-0">

@@ -159,6 +159,20 @@ const formatLabel = (value) => {
             </div>
 
             <div class="grid gap-5 sm:grid-cols-2">
+                <div>
+                    <InputLabel for="email" value="Work Email" />
+
+                    <TextInput
+                        id="email"
+                        type="email"
+                        class="mt-1 block w-full"
+                        v-model="form.email"
+                        required
+                        autocomplete="username"
+                    />
+
+                    <InputError class="mt-2" :message="form.errors.email" />
+                </div>
 
                 <div>
                     <InputLabel for="avatar_image" value="Profile Image" />

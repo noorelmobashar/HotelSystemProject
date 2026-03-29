@@ -39,7 +39,7 @@ const roleLayouts = {
                 label: 'Manage Receptionists',
                 subtitle: 'Desk staffing',
                 icon: 'receptionists',
-                routeName: null,
+                routeName: 'receptionists.index',
             },
             {
                 label: 'Manage Clients',
@@ -98,7 +98,7 @@ const roleLayouts = {
                 label: 'Manage Receptionists',
                 subtitle: 'Desk staffing',
                 icon: 'receptionists',
-                routeName: null,
+                routeName: 'receptionists.index',
             },
             {
                 label: 'Manage Clients',

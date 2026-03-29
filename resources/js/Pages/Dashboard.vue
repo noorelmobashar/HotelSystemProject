@@ -23,5 +23,5 @@ const dashboardTitle = computed(() => {
 <template>
     <Head :title="dashboardTitle" />
 
-    <RoleDashboardLayout />
+    <RoleDashboardLayout :hide-main="true" />
 </template>

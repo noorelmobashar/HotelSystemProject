@@ -8,6 +8,10 @@ class Reservation extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'is_active' => 'bool',
+    ];
+
     public function client()
     {
         return $this->belongsTo(User::class, 'client_id');
@@ -16,5 +20,10 @@ class Reservation extends Model
     public function room()
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

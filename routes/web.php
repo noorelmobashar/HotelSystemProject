@@ -24,4 +24,26 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+//add the route in the gruop  depend on the role
+//admin
+//manager
+//receptionist
+//client
+
+
+// Route::middleware(['auth', 'role:admin'])->group(function () {
+// });
+
+
+// Route::middleware(['auth', 'role:manager'])->group(function () {
+// });
+
+// Route::middleware(['auth', 'role:manager|admin'])->group(function () {
+// });
+
+// Route::middleware(['auth', 'role:receptionist'])->group(function () {
+// });
+
+
+
 require __DIR__.'/auth.php';

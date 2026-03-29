@@ -37,32 +37,16 @@ const submit = () => {
             <p class="text-sm font-semibold uppercase tracking-[0.3em] text-sky-500">
                 Welcome Back
             </p>
-            <h1 class="mt-3 text-3xl font-semibold text-slate-900">
-                Log in to your hotel workspace
+            <h1 class="mt-3 text-center text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Sign in to continue
             </h1>
-            <p class="mt-3 text-sm leading-6 text-slate-500">
-                Use your account credentials to access reservations, guest workflows, and room operations.
+            <p class="mt-3 text-center text-sm leading-6 text-slate-500 sm:text-base">
+                Enter your account details to access the hotel management workspace.
             </p>
         </div>
 
-        <div class="mb-6 grid gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
-                    Access
-                </p>
-                <p class="mt-2 text-sm font-medium text-slate-700">
-                    Continue to your role-specific dashboard and current tasks.
-                </p>
-            </div>
-
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
-                    Security
-                </p>
-                <p class="mt-2 text-sm font-medium text-slate-700">
-                    Session access stays tied to your hotel workspace account.
-                </p>
-            </div>
+        <div class="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-600">
+            Use the same account you use for reservations, front-desk work, or your role-based dashboard.
         </div>
 
         <div
@@ -77,7 +61,7 @@ const submit = () => {
             @submit.prevent="submit"
         >
             <div>
-                <InputLabel for="email" value="Work Email" />
+                <InputLabel for="email" value="Email Address" />
 
                 <TextInput
                     id="email"
@@ -139,7 +123,7 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Sign In
+                    Log In
                 </PrimaryButton>
             </div>
         </form>

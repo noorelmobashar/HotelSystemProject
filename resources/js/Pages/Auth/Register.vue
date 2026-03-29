@@ -28,32 +28,16 @@ const submit = () => {
             <p class="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-500">
                 Create Account
             </p>
-            <h1 class="mt-3 text-3xl font-semibold text-slate-900">
-                Register for the hotel workspace
+            <h1 class="mt-3 text-center text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Register for guest access
             </h1>
-            <p class="mt-3 text-sm leading-6 text-slate-500">
-                Create your account to access reservations, profile tools, and your role-based dashboard.
+            <p class="mt-3 text-center text-sm leading-6 text-slate-500 sm:text-base">
+                Create your account to manage reservations and access the hotel system.
             </p>
         </div>
 
-        <div class="mb-6 grid gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
-                    Fast Setup
-                </p>
-                <p class="mt-2 text-sm font-medium text-slate-700">
-                    Create your account and move directly into the guest reservation flow.
-                </p>
-            </div>
-
-            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
-                    Unified Account
-                </p>
-                <p class="mt-2 text-sm font-medium text-slate-700">
-                    Your profile, reservations, and dashboard all connect through one account.
-                </p>
-            </div>
+        <div class="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm text-slate-600">
+            Your account will be used for reservations, profile details, and access to the guest workspace.
         </div>
 
         <form
@@ -78,7 +62,7 @@ const submit = () => {
             </div>
 
             <div>
-                <InputLabel for="email" value="Work Email" />
+                <InputLabel for="email" value="Email Address" />
 
                 <TextInput
                     id="email"

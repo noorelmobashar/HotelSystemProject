@@ -3,6 +3,13 @@ import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import RoleSidebarIcon from '@/Components/RoleSidebarIcon.vue';
 
+const props = defineProps({
+    hideMain: {
+        type: Boolean,
+        default: false,
+    },
+});
+
 const page = usePage();
 const hotelName = 'Aurora Grand Hotel';
 
@@ -16,34 +23,59 @@ const roleLayouts = {
         activeTitleClass: 'text-sky-700',
         activeSubtitleClass: 'text-sky-400',
         menu: [
-            { label: 'Overview', subtitle: 'Portfolio health', icon: 'overview' },
+            {
+                label: 'Overview',
+                subtitle: 'Portfolio health',
+                icon: 'overview',
+                routeName: 'dashboard',
+            },
             {
                 label: 'Manage Managers',
                 subtitle: 'Leadership accounts',
                 icon: 'managers',
+                routeName: null,
             },
             {
                 label: 'Manage Receptionists',
                 subtitle: 'Desk staffing',
                 icon: 'receptionists',
+                routeName: null,
             },
-            { label: 'Manage Clients', subtitle: 'Guest approvals', icon: 'clients' },
-            { label: 'Manage Floors', subtitle: 'Hotel structure', icon: 'floors' },
-            { label: 'Manage Rooms', subtitle: 'Rates and capacity', icon: 'rooms' },
+            {
+                label: 'Manage Clients',
+                subtitle: 'Guest approvals',
+                icon: 'clients',
+                routeName: null,
+            },
+            {
+                label: 'Manage Floors',
+                subtitle: 'Hotel structure',
+                icon: 'floors',
+                routeName: null,
+            },
+            {
+                label: 'Manage Rooms',
+                subtitle: 'Rates and capacity',
+                icon: 'rooms',
+                routeName: null,
+            },
             {
                 label: 'Approved Clients',
                 subtitle: 'Reception handoff',
                 icon: 'approved',
+                routeName: null,
             },
             {
                 label: 'Client Reservations',
                 subtitle: 'Paid stays',
                 icon: 'reservations',
+                routeName: null,
             },
             {
                 label: 'Statistics',
                 subtitle: 'Business intelligence',
                 icon: 'stats',
+                routeName: null,
             },
         ],
     },
@@ -56,23 +88,41 @@ const roleLayouts = {
         activeTitleClass: 'text-teal-700',
         activeSubtitleClass: 'text-teal-400',
         menu: [
-            { label: 'Overview', subtitle: 'Property command', icon: 'overview' },
+            {
+                label: 'Overview',
+                subtitle: 'Property command',
+                icon: 'overview',
+                routeName: 'dashboard',
+            },
             {
                 label: 'Manage Receptionists',
                 subtitle: 'Desk staffing',
                 icon: 'receptionists',
+                routeName: null,
             },
-            { label: 'Manage Clients', subtitle: 'Guest records', icon: 'clients' },
+            {
+                label: 'Manage Clients',
+                subtitle: 'Guest records',
+                icon: 'clients',
+                routeName: null,
+            },
             {
                 label: 'Manage Floors',
                 subtitle: 'Structure and numbering',
                 icon: 'floors',
+                routeName: null,
             },
-            { label: 'Manage Rooms', subtitle: 'Rates and capacity', icon: 'rooms' },
+            {
+                label: 'Manage Rooms',
+                subtitle: 'Rates and capacity',
+                icon: 'rooms',
+                routeName: null,
+            },
             {
                 label: 'Statistics',
                 subtitle: 'Business intelligence',
                 icon: 'stats',
+                routeName: null,
             },
         ],
     },
@@ -85,17 +135,29 @@ const roleLayouts = {
         activeTitleClass: 'text-amber-700',
         activeSubtitleClass: 'text-amber-400',
         menu: [
-            { label: 'Overview', subtitle: 'Desk command', icon: 'overview' },
-            { label: 'Manage Clients', subtitle: 'Pending approvals', icon: 'clients' },
+            {
+                label: 'Overview',
+                subtitle: 'Desk command',
+                icon: 'overview',
+                routeName: 'dashboard',
+            },
+            {
+                label: 'Manage Clients',
+                subtitle: 'Pending approvals',
+                icon: 'clients',
+                routeName: null,
+            },
             {
                 label: 'My Approved Clients',
                 subtitle: 'Approved guests',
                 icon: 'approved',
+                routeName: null,
             },
             {
                 label: 'Clients Reservations',
                 subtitle: 'Paid stays',
                 icon: 'reservations',
+                routeName: 'reservations.index',
             },
         ],
     },
@@ -108,16 +170,23 @@ const roleLayouts = {
         activeTitleClass: 'text-violet-700',
         activeSubtitleClass: 'text-violet-400',
         menu: [
-            { label: 'Overview', subtitle: 'Guest workspace', icon: 'overview' },
+            {
+                label: 'Overview',
+                subtitle: 'Guest workspace',
+                icon: 'overview',
+                routeName: 'dashboard',
+            },
             {
                 label: 'Make Reservation',
                 subtitle: 'Available rooms',
                 icon: 'reservation',
+                routeName: 'reservations.create',
             },
             {
                 label: 'My Reservations',
                 subtitle: 'Current and past stays',
                 icon: 'reservations',
+                routeName: 'reservations.index',
             },
         ],
     },
@@ -150,10 +219,28 @@ const roleInitials = computed(() => {
         .join('');
 });
 
+const hasRoute = (routeName) => routeName && route().has(routeName);
+
+const isItemActive = (item) => {
+    if (!hasRoute(item.routeName)) {
+        return false;
+    }
+
+    return route().current(item.routeName);
+};
+
+const itemHref = (item) => {
+    if (!hasRoute(item.routeName)) {
+        return null;
+    }
+
+    return route(item.routeName);
+};
+
 const sidebarItems = computed(() =>
-    roleLayout.value.menu.map((item, index) => ({
+    roleLayout.value.menu.map((item) => ({
         ...item,
-        active: index === 0,
+        active: isItemActive(item),
     })),
 );
 </script>
@@ -219,10 +306,12 @@ const sidebarItems = computed(() =>
                     </p>
 
                     <nav class="mt-2 space-y-1.5">
-                        <button
+                        <component
                             v-for="item in sidebarItems"
                             :key="item.label"
-                            type="button"
+                            :is="itemHref(item) ? Link : 'button'"
+                            :href="itemHref(item) || undefined"
+                            :type="itemHref(item) ? undefined : 'button'"
                             :class="[
                                 'group flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200',
                                 item.active
@@ -263,7 +352,7 @@ const sidebarItems = computed(() =>
                                     {{ item.subtitle }}
                                 </span>
                             </span>
-                        </button>
+                        </component>
                     </nav>
                 </div>
 
@@ -288,7 +377,10 @@ const sidebarItems = computed(() =>
                 </div>
             </aside>
 
-            <main class="hidden flex-1 md:block">
+            <main
+                v-if="!props.hideMain"
+                class="hidden flex-1 md:block"
+            >
                 <slot>
                     <div class="h-full bg-gradient-to-br from-slate-100 via-slate-100 to-slate-200/60" />
                 </slot>

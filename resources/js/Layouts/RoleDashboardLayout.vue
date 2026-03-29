@@ -1,0 +1,298 @@
+<script setup>
+import { computed } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import RoleSidebarIcon from '@/Components/RoleSidebarIcon.vue';
+
+const page = usePage();
+const hotelName = 'Aurora Grand Hotel';
+
+const roleLayouts = {
+    admin: {
+        roleLabel: 'Hotel Administrator',
+        brandCaptionClass: 'text-sky-500',
+        badgeGradient: 'from-cyan-500 to-blue-500',
+        activeItemClass: 'border-sky-200 bg-sky-50/90',
+        activeIconClass: 'bg-sky-100 text-sky-700',
+        activeTitleClass: 'text-sky-700',
+        activeSubtitleClass: 'text-sky-400',
+        menu: [
+            { label: 'Overview', subtitle: 'Portfolio health', icon: 'overview' },
+            {
+                label: 'Manage Managers',
+                subtitle: 'Leadership accounts',
+                icon: 'managers',
+            },
+            {
+                label: 'Manage Receptionists',
+                subtitle: 'Desk staffing',
+                icon: 'receptionists',
+            },
+            { label: 'Manage Clients', subtitle: 'Guest approvals', icon: 'clients' },
+            { label: 'Manage Floors', subtitle: 'Hotel structure', icon: 'floors' },
+            { label: 'Manage Rooms', subtitle: 'Rates and capacity', icon: 'rooms' },
+            {
+                label: 'Approved Clients',
+                subtitle: 'Reception handoff',
+                icon: 'approved',
+            },
+            {
+                label: 'Client Reservations',
+                subtitle: 'Paid stays',
+                icon: 'reservations',
+            },
+            {
+                label: 'Statistics',
+                subtitle: 'Business intelligence',
+                icon: 'stats',
+            },
+        ],
+    },
+    manager: {
+        roleLabel: 'Property Manager',
+        brandCaptionClass: 'text-teal-500',
+        badgeGradient: 'from-emerald-500 to-cyan-500',
+        activeItemClass: 'border-teal-200 bg-teal-50/90',
+        activeIconClass: 'bg-teal-100 text-teal-700',
+        activeTitleClass: 'text-teal-700',
+        activeSubtitleClass: 'text-teal-400',
+        menu: [
+            { label: 'Overview', subtitle: 'Property command', icon: 'overview' },
+            {
+                label: 'Manage Receptionists',
+                subtitle: 'Desk staffing',
+                icon: 'receptionists',
+            },
+            { label: 'Manage Clients', subtitle: 'Guest records', icon: 'clients' },
+            {
+                label: 'Manage Floors',
+                subtitle: 'Structure and numbering',
+                icon: 'floors',
+            },
+            { label: 'Manage Rooms', subtitle: 'Rates and capacity', icon: 'rooms' },
+            {
+                label: 'Statistics',
+                subtitle: 'Business intelligence',
+                icon: 'stats',
+            },
+        ],
+    },
+    receptionist: {
+        roleLabel: 'Front Desk Receptionist',
+        brandCaptionClass: 'text-orange-500',
+        badgeGradient: 'from-amber-500 to-orange-500',
+        activeItemClass: 'border-amber-200 bg-amber-50/90',
+        activeIconClass: 'bg-amber-100 text-amber-700',
+        activeTitleClass: 'text-amber-700',
+        activeSubtitleClass: 'text-amber-400',
+        menu: [
+            { label: 'Overview', subtitle: 'Desk command', icon: 'overview' },
+            { label: 'Manage Clients', subtitle: 'Pending approvals', icon: 'clients' },
+            {
+                label: 'My Approved Clients',
+                subtitle: 'Approved guests',
+                icon: 'approved',
+            },
+            {
+                label: 'Clients Reservations',
+                subtitle: 'Paid stays',
+                icon: 'reservations',
+            },
+        ],
+    },
+    client: {
+        roleLabel: 'Approved Client',
+        brandCaptionClass: 'text-violet-500',
+        badgeGradient: 'from-fuchsia-500 to-violet-500',
+        activeItemClass: 'border-violet-200 bg-violet-50/90',
+        activeIconClass: 'bg-violet-100 text-violet-700',
+        activeTitleClass: 'text-violet-700',
+        activeSubtitleClass: 'text-violet-400',
+        menu: [
+            { label: 'Overview', subtitle: 'Guest workspace', icon: 'overview' },
+            {
+                label: 'Make Reservation',
+                subtitle: 'Available rooms',
+                icon: 'reservation',
+            },
+            {
+                label: 'My Reservations',
+                subtitle: 'Current and past stays',
+                icon: 'reservations',
+            },
+        ],
+    },
+};
+
+const currentRole = computed(() => {
+    const role = String(page.props.auth?.role ?? '').toLowerCase();
+
+    return roleLayouts[role] ? role : 'admin';
+});
+
+const roleLayout = computed(() => roleLayouts[currentRole.value]);
+
+const user = computed(() => page.props.auth?.user ?? {});
+
+const userEmail = computed(() => user.value?.email || 'user@hotel.com');
+
+const roleInitials = computed(() => {
+    const roleLabel = String(roleLayout.value.roleLabel ?? '').trim();
+
+    if (!roleLabel) {
+        return 'HC';
+    }
+
+    const pieces = roleLabel.split(/\s+/).filter(Boolean);
+
+    return pieces
+        .slice(0, 2)
+        .map((piece) => piece.charAt(0).toUpperCase())
+        .join('');
+});
+
+const sidebarItems = computed(() =>
+    roleLayout.value.menu.map((item, index) => ({
+        ...item,
+        active: index === 0,
+    })),
+);
+</script>
+
+<template>
+    <div class="min-h-screen bg-slate-100">
+        <div class="flex min-h-screen">
+            <aside
+                class="flex w-full flex-col border-r border-slate-200 bg-[#f8fafc] px-4 py-5 md:w-[323px] md:min-w-[323px]"
+            >
+                <div class="flex items-center gap-3 px-1">
+                    <div
+                        :class="[
+                            'flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br text-sm font-semibold text-white',
+                            roleLayout.badgeGradient,
+                        ]"
+                    >
+                        HC
+                    </div>
+
+                    <div class="min-w-0">
+                        <p
+                            :class="[
+                                'text-[11px] font-semibold uppercase tracking-[0.35em]',
+                                roleLayout.brandCaptionClass,
+                            ]"
+                        >
+                            Hotel Workspace
+                        </p>
+                        <p class="text-xl font-semibold leading-tight text-slate-900">
+                            {{ hotelName }}
+                        </p>
+                    </div>
+                </div>
+
+                <div
+                    class="mt-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.9)]"
+                >
+                    <div class="flex items-center gap-3">
+                        <div
+                            :class="[
+                                'flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-base font-semibold text-white',
+                                roleLayout.badgeGradient,
+                            ]"
+                        >
+                            {{ roleInitials }}
+                        </div>
+
+                        <div class="min-w-0">
+                            <p class="truncate text-[17px] font-semibold leading-tight text-slate-700">
+                                {{ roleLayout.roleLabel }}
+                            </p>
+                            <p class="truncate text-sm text-slate-500">
+                                {{ userEmail }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <p class="px-2 text-[11px] uppercase tracking-[0.35em] text-slate-400">
+                        Workspace
+                    </p>
+
+                    <nav class="mt-2 space-y-1.5">
+                        <button
+                            v-for="item in sidebarItems"
+                            :key="item.label"
+                            type="button"
+                            :class="[
+                                'group flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200',
+                                item.active
+                                    ? roleLayout.activeItemClass
+                                    : 'border-transparent hover:border-slate-200 hover:bg-white/80',
+                            ]"
+                        >
+                            <span
+                                :class="[
+                                    'flex h-8 w-8 items-center justify-center rounded-xl transition-colors duration-200',
+                                    item.active
+                                        ? roleLayout.activeIconClass
+                                        : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-500',
+                                ]"
+                            >
+                                <RoleSidebarIcon :name="item.icon" />
+                            </span>
+
+                            <span class="min-w-0">
+                                <span
+                                    :class="[
+                                        'block truncate text-[15px] font-medium leading-tight',
+                                        item.active
+                                            ? roleLayout.activeTitleClass
+                                            : 'text-slate-600',
+                                    ]"
+                                >
+                                    {{ item.label }}
+                                </span>
+                                <span
+                                    :class="[
+                                        'block truncate text-xs',
+                                        item.active
+                                            ? roleLayout.activeSubtitleClass
+                                            : 'text-slate-400',
+                                    ]"
+                                >
+                                    {{ item.subtitle }}
+                                </span>
+                            </span>
+                        </button>
+                    </nav>
+                </div>
+
+                <div class="mt-auto space-y-2 pt-8">
+                    <Link
+                        :href="route('profile.edit')"
+                        class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
+                    >
+                        <RoleSidebarIcon name="profile" />
+                        Profile
+                    </Link>
+
+                    <Link
+                        :href="route('logout')"
+                        method="post"
+                        as="button"
+                        class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors duration-200 hover:bg-slate-50"
+                    >
+                        <RoleSidebarIcon name="logout" />
+                        Log Out
+                    </Link>
+                </div>
+            </aside>
+
+            <main class="hidden flex-1 md:block">
+                <slot>
+                    <div class="h-full bg-gradient-to-br from-slate-100 via-slate-100 to-slate-200/60" />
+                </slot>
+            </main>
+        </div>
+    </div>
+</template>

@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
         ]);
 
-        $user = User::updateOrCreate([
+        $admin = User::updateOrCreate([
             'name' => 'Admin',
             'email' => 'admin@admin.com',
         ], [
@@ -29,8 +29,38 @@ class DatabaseSeeder extends Seeder
             'gender' => 'male',
             'password' => bcrypt('123456'),
         ]);
+        $admin->assignRole('admin');
 
-        $user->assignRole('admin');
+        $manager = User::updateOrCreate([
+            'name' => 'Manager',
+            'email' => 'manager@manager.com',
+        ], [
+            'name' => 'Manager',
+            'gender' => 'male',
+            'password' => bcrypt('123456'),
+        ]);
+        $manager->assignRole('manager');
+
+        $receptionist = User::updateOrCreate([
+            'name' => 'Receptionist',
+            'email' => 'receptionist@receptionist.com',
+        ], [
+            'name' => 'Receptionist',
+            'gender' => 'female',
+            'password' => bcrypt('123456'),
+        ]);
+        $receptionist->assignRole('receptionist');
+
+        $client = User::updateOrCreate([
+            'name' => 'Client',
+            'email' => 'client@client.com',
+        ], [
+            'name' => 'Client',
+            'gender' => 'male',
+            'password' => bcrypt('123456'),
+        ]);
+        $client->assignRole('client');
+
 
     }
 }

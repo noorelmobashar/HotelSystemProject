@@ -3,6 +3,13 @@ import { computed } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 import RoleSidebarIcon from "@/Components/RoleSidebarIcon.vue";
 
+const props = defineProps({
+    hideMain: {
+        type: Boolean,
+        default: false,
+    },
+});
+
 const page = usePage();
 const hotelName = "Aurora Grand Hotel";
 
@@ -20,48 +27,55 @@ const roleLayouts = {
                 label: "Overview",
                 subtitle: "Portfolio health",
                 icon: "overview",
-                key: "overview",
+                routeName: "dashboard",
             },
             {
                 label: "Manage Managers",
                 subtitle: "Leadership accounts",
                 icon: "managers",
+                routeName: null,
             },
             {
                 label: "Manage Receptionists",
                 subtitle: "Desk staffing",
                 icon: "receptionists",
+                routeName: "receptionists.index",
             },
             {
                 label: "Manage Clients",
                 subtitle: "Guest approvals",
                 icon: "clients",
+                routeName: null,
             },
             {
                 label: "Manage Floors",
                 subtitle: "Hotel structure",
                 icon: "floors",
-                key: "floors",
+                routeName: "floors.index",
             },
             {
                 label: "Manage Rooms",
                 subtitle: "Rates and capacity",
                 icon: "rooms",
+                routeName: null,
             },
             {
                 label: "Approved Clients",
                 subtitle: "Reception handoff",
                 icon: "approved",
+                routeName: null,
             },
             {
                 label: "Client Reservations",
                 subtitle: "Paid stays",
                 icon: "reservations",
+                routeName: null,
             },
             {
                 label: "Statistics",
                 subtitle: "Business intelligence",
                 icon: "stats",
+                routeName: null,
             },
         ],
     },
@@ -78,33 +92,37 @@ const roleLayouts = {
                 label: "Overview",
                 subtitle: "Property command",
                 icon: "overview",
-                key: "overview",
+                routeName: "dashboard",
             },
             {
                 label: "Manage Receptionists",
                 subtitle: "Desk staffing",
                 icon: "receptionists",
+                routeName: "receptionists.index",
             },
             {
                 label: "Manage Clients",
                 subtitle: "Guest records",
                 icon: "clients",
+                routeName: null,
             },
             {
                 label: "Manage Floors",
                 subtitle: "Structure and numbering",
                 icon: "floors",
-                key: "floors",
+                routeName: "floors.index",
             },
             {
                 label: "Manage Rooms",
                 subtitle: "Rates and capacity",
                 icon: "rooms",
+                routeName: null,
             },
             {
                 label: "Statistics",
                 subtitle: "Business intelligence",
                 icon: "stats",
+                routeName: null,
             },
         ],
     },
@@ -121,22 +139,25 @@ const roleLayouts = {
                 label: "Overview",
                 subtitle: "Desk command",
                 icon: "overview",
-                key: "overview",
+                routeName: "dashboard",
             },
             {
                 label: "Manage Clients",
                 subtitle: "Pending approvals",
                 icon: "clients",
+                routeName: null,
             },
             {
                 label: "My Approved Clients",
                 subtitle: "Approved guests",
                 icon: "approved",
+                routeName: null,
             },
             {
                 label: "Clients Reservations",
                 subtitle: "Paid stays",
                 icon: "reservations",
+                routeName: "reservations.index",
             },
         ],
     },
@@ -153,17 +174,19 @@ const roleLayouts = {
                 label: "Overview",
                 subtitle: "Guest workspace",
                 icon: "overview",
-                key: "overview",
+                routeName: "dashboard",
             },
             {
                 label: "Make Reservation",
                 subtitle: "Available rooms",
                 icon: "reservation",
+                routeName: "reservations.create",
             },
             {
                 label: "My Reservations",
                 subtitle: "Current and past stays",
                 icon: "reservations",
+                routeName: "reservations.index",
             },
         ],
     },
@@ -181,6 +204,20 @@ const user = computed(() => page.props.auth?.user ?? {});
 
 const userEmail = computed(() => user.value?.email || "user@hotel.com");
 
+const userAvatarUrl = computed(() => {
+    const avatar = user.value?.avatar_image;
+
+    if (!avatar) {
+        return null;
+    }
+
+    if (String(avatar).startsWith("http")) {
+        return avatar;
+    }
+
+    return `/storage/${avatar}`;
+});
+
 const roleInitials = computed(() => {
     const roleLabel = String(roleLayout.value.roleLabel ?? "").trim();
 
@@ -196,27 +233,37 @@ const roleInitials = computed(() => {
         .join("");
 });
 
-const currentPath = computed(() => String(page.url ?? "").split("?")[0]);
+const hasRoute = (routeName) => Boolean(routeName) && route().has(routeName);
 
-const itemRoutes = {
-    overview: {
-        href: () => route("dashboard"),
-        active: (path) => path === "/dashboard",
-    },
-    floors: {
-        href: () => route("floors.index"),
-        active: (path) => path.startsWith("/floors"),
-    },
+const isItemActive = (item) => {
+    if (!hasRoute(item.routeName)) {
+        return false;
+    }
+
+    if (item.routeName === "floors.index") {
+        return route().current("floors.*");
+    }
+
+    return route().current(item.routeName);
+};
+
+const itemHref = (item) => {
+    if (!hasRoute(item.routeName)) {
+        return null;
+    }
+
+    return route(item.routeName);
 };
 
 const sidebarItems = computed(() =>
     roleLayout.value.menu.map((item) => {
-        const routeMeta = item.key ? itemRoutes[item.key] : null;
+        const href = itemHref(item);
 
         return {
             ...item,
-            href: routeMeta ? routeMeta.href() : null,
-            active: routeMeta ? routeMeta.active(currentPath.value) : false,
+            href,
+            active: isItemActive(item),
+            disabled: !href,
         };
     }),
 );
@@ -261,11 +308,17 @@ const sidebarItems = computed(() =>
                     <div class="flex items-center gap-3">
                         <div
                             :class="[
-                                'flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br text-base font-semibold text-white',
+                                'flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br text-base font-semibold text-white',
                                 roleLayout.badgeGradient,
                             ]"
                         >
-                            {{ roleInitials }}
+                            <img
+                                v-if="userAvatarUrl"
+                                :src="userAvatarUrl"
+                                :alt="`${roleLayout.roleLabel} avatar`"
+                                class="h-full w-full object-cover"
+                            />
+                            <span v-else>{{ roleInitials }}</span>
                         </div>
 
                         <div class="min-w-0">
@@ -299,7 +352,9 @@ const sidebarItems = computed(() =>
                                 'group flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200',
                                 item.active
                                     ? roleLayout.activeItemClass
-                                    : 'border-transparent hover:border-slate-200 hover:bg-white/80',
+                                    : item.disabled
+                                      ? 'cursor-not-allowed border-transparent bg-slate-50/70 opacity-75'
+                                      : 'border-transparent hover:border-slate-200 hover:bg-white/80',
                             ]"
                         >
                             <span
@@ -307,7 +362,9 @@ const sidebarItems = computed(() =>
                                     'flex h-8 w-8 items-center justify-center rounded-xl transition-colors duration-200',
                                     item.active
                                         ? roleLayout.activeIconClass
-                                        : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-500',
+                                        : item.disabled
+                                          ? 'bg-slate-100 text-slate-300'
+                                          : 'bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-500',
                                 ]"
                             >
                                 <RoleSidebarIcon :name="item.icon" />
@@ -319,7 +376,9 @@ const sidebarItems = computed(() =>
                                         'block truncate text-[15px] font-medium leading-tight',
                                         item.active
                                             ? roleLayout.activeTitleClass
-                                            : 'text-slate-600',
+                                            : item.disabled
+                                              ? 'text-slate-400'
+                                              : 'text-slate-600',
                                     ]"
                                 >
                                     {{ item.label }}
@@ -329,7 +388,9 @@ const sidebarItems = computed(() =>
                                         'block truncate text-xs',
                                         item.active
                                             ? roleLayout.activeSubtitleClass
-                                            : 'text-slate-400',
+                                            : item.disabled
+                                              ? 'text-slate-300'
+                                              : 'text-slate-400',
                                     ]"
                                 >
                                     {{ item.subtitle }}
@@ -360,7 +421,7 @@ const sidebarItems = computed(() =>
                 </div>
             </aside>
 
-            <main class="hidden flex-1 md:block">
+            <main v-if="!props.hideMain" class="hidden flex-1 md:block">
                 <slot>
                     <div
                         class="h-full bg-gradient-to-br from-slate-100 via-slate-100 to-slate-200/60"

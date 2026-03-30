@@ -1,7 +1,6 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
 import RoleDashboardLayout from '@/Layouts/RoleDashboardLayout.vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
     rooms: {
@@ -11,18 +10,6 @@ const props = defineProps({
 });
 
 const page = usePage();
-
-const form = useForm({
-    room_id: null,
-});
-
-const makeReservation = (roomId) => {
-    form.room_id = roomId;
-
-    form.post(route('reservations.store'), {
-        preserveScroll: true,
-    });
-};
 
 const formatPrice = (value) => {
     return new Intl.NumberFormat('en-US', {
@@ -53,10 +40,10 @@ const formatPrice = (value) => {
                 </div>
 
                 <div
-                    v-if="form.errors.room"
+                    v-if="page.props.flash?.error"
                     class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
                 >
-                    {{ form.errors.room }}
+                    {{ page.props.flash.error }}
                 </div>
 
                 <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -65,6 +52,10 @@ const formatPrice = (value) => {
                             <tr>
                                 <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Room Number
+                                </th>
+                                <!-- Floor -->
+                                 <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    Floor   
                                 </th>
                                 <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Price
@@ -88,20 +79,21 @@ const formatPrice = (value) => {
                                     {{ room.number }}
                                 </td>
                                 <td class="px-5 py-4 text-sm text-slate-600">
+                                    {{ room.floor ?? 'N/A' }}
+                                </td>
+                                <td class="px-5 py-4 text-sm text-slate-600">
                                     {{ formatPrice(room.price) }}
                                 </td>
                                 <td class="px-5 py-4 text-sm text-slate-600">
                                     {{ room.capacity }}
                                 </td>
                                 <td class="px-5 py-4">
-                                    <button
-                                        type="button"
+                                    <Link
+                                        :href="route('reservations.rooms.show', { roomId: room.id })"
                                         class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                                        :disabled="form.processing"
-                                        @click="makeReservation(room.id)"
                                     >
                                         Make Reservation
-                                    </button>
+                                    </Link>
                                 </td>
                             </tr>
 
@@ -116,11 +108,6 @@ const formatPrice = (value) => {
                         </tbody>
                     </table>
                 </div>
-
-                <InputError
-                    class="mt-3"
-                    :message="form.errors.room_id"
-                />
             </div>
         </div>
     </RoleDashboardLayout>

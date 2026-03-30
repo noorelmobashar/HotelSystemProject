@@ -26,7 +26,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
     Route::get('/reservations/create', [ReservationController::class, 'create'])->name('reservations.create');
-    Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');
+    Route::get('/reservations/rooms/{roomId}', [ReservationController::class, 'showRoomReservation'])
+        ->name('reservations.rooms.show');
+    Route::post('/reservations/rooms/{roomId}/checkout', [ReservationController::class, 'checkout'])
+        ->name('reservations.rooms.checkout');
+    Route::get('/reservations/checkout/success', [ReservationController::class, 'checkoutSuccess'])
+        ->name('reservations.checkout.success');
 });
 
 require __DIR__ . '/auth.php';

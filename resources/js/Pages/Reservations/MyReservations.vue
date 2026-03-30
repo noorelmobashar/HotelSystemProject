@@ -1,12 +1,34 @@
 <script setup>
+import { computed } from 'vue';
 import RoleDashboardLayout from '@/Layouts/RoleDashboardLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
     reservations: {
         type: Array,
         default: () => [],
     },
+});
+
+const page = usePage();
+
+const status = computed(() => {
+    const url = String(page.url ?? '');
+    const query = url.includes('?') ? url.split('?')[1] : '';
+
+    return new URLSearchParams(query).get('status');
+});
+
+const statusMessage = computed(() => {
+    if (status.value === 'success') {
+        return 'Payment completed successfully and reservation has been added.';
+    }
+
+    if (status.value === 'already_confirmed') {
+        return 'Reservation was already confirmed for this room.';
+    }
+
+    return '';
 });
 
 const formatPrice = (value) => {
@@ -30,6 +52,20 @@ const formatPrice = (value) => {
                     </p>
                 </div>
 
+                <div
+                    v-if="statusMessage"
+                    class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+                >
+                    {{ statusMessage }}
+                </div>
+
+                <div
+                    v-if="page.props.flash?.success"
+                    class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+                >
+                    {{ page.props.flash.success }}
+                </div>
+
                 <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
@@ -39,6 +75,9 @@ const formatPrice = (value) => {
                                 </th>
                                 <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Capacity
+                                </th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    Accompany
                                 </th>
                                 <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     Paid Price
@@ -65,6 +104,9 @@ const formatPrice = (value) => {
                                     {{ reservation.capacity }}
                                 </td>
                                 <td class="px-5 py-4 text-sm text-slate-600">
+                                    {{ reservation.accompany_number }}
+                                </td>
+                                <td class="px-5 py-4 text-sm text-slate-600">
                                     {{ formatPrice(reservation.paid_price) }}
                                 </td>
                                 <td class="px-5 py-4 text-sm">
@@ -82,7 +124,7 @@ const formatPrice = (value) => {
 
                             <tr v-if="props.reservations.length === 0">
                                 <td
-                                    colspan="5"
+                                    colspan="6"
                                     class="px-5 py-8 text-center text-sm text-slate-500"
                                 >
                                     No reservations yet.

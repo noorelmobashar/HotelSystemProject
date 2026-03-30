@@ -61,6 +61,11 @@ const deleteModalOpen = ref(false);
 const deleteMessage = ref("");
 const deleteMessageTone = ref("error");
 const isAdmin = computed(() => Boolean(props.isAdmin));
+const searchPlaceholder = computed(() =>
+    isAdmin.value
+        ? "Search by floor name, number, or manager"
+        : "Search by floor name or number",
+);
 const hasManageableRows = computed(() =>
     rows.value.some((row) => Boolean(row.can_manage)),
 );
@@ -136,7 +141,13 @@ const loadPage = (page) => {
     });
 };
 
-const isSortableColumn = (column) => ["name", "number"].includes(column);
+const isSortableColumn = (column) => {
+    if (column === "manager_name") {
+        return isAdmin.value;
+    }
+
+    return ["name", "number"].includes(column);
+};
 
 const sortIndicator = (column) => {
     if (sortBy.value !== column) {
@@ -336,7 +347,7 @@ onBeforeUnmount(() => {
                             <input
                                 v-model="search"
                                 type="text"
-                                placeholder="Search by floor name or number"
+                                :placeholder="searchPlaceholder"
                                 class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:w-64"
                             />
 

@@ -7,6 +7,7 @@ use App\Http\Requests\Floor\FloorStoreRequest;
 use App\Http\Requests\Floor\FloorUpdateRequest;
 use App\Models\Floor;
 use App\Models\Room;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -26,13 +27,28 @@ class FloorController extends Controller
         $perPage = (int) ($validated['per_page'] ?? 10);
         $sortBy = $validated['sort_by'] ?? null;
         $sortDir = $validated['sort_dir'] ?? 'asc';
+        $allowedSortColumns = $isAdmin
+            ? ['name', 'number', 'manager_name']
+            : ['name', 'number'];
 
         $floorsQuery = Floor::query()
             ->with('manager:id,name')
             ->select(['id', 'name', 'number', 'created_by']);
 
-        if (in_array($sortBy, ['name', 'number'], true)) {
-            $floorsQuery->orderBy($sortBy, $sortDir)->orderBy('id');
+        if (in_array($sortBy, $allowedSortColumns, true)) {
+            if ($sortBy === 'manager_name') {
+                $floorsQuery
+                    ->orderBy(
+                        User::query()
+                            ->select('name')
+                            ->whereColumn('users.id', 'floors.created_by')
+                            ->limit(1),
+                        $sortDir
+                    )
+                    ->orderBy('id');
+            } else {
+                $floorsQuery->orderBy($sortBy, $sortDir)->orderBy('id');
+            }
         } else {
             $sortBy = null;
             $sortDir = 'asc';
@@ -40,10 +56,16 @@ class FloorController extends Controller
         }
 
         if ($search !== '') {
-            $floorsQuery->where(function ($query) use ($search) {
+            $floorsQuery->where(function ($query) use ($search, $isAdmin) {
                 $query
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('number', 'like', "%{$search}%");
+
+                if ($isAdmin) {
+                    $query->orWhereHas('manager', function ($managerQuery) use ($search) {
+                        $managerQuery->where('name', 'like', "%{$search}%");
+                    });
+                }
             });
         }
 

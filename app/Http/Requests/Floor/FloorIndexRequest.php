@@ -25,7 +25,7 @@ class FloorIndexRequest extends FormRequest
         return [
             'search' => ['nullable', 'string', 'max:100'],
             'per_page' => ['nullable', 'integer', 'in:5,10,15'],
-            'sort_by' => ['nullable', 'string', 'in:name,number'],
+            'sort_by' => ['nullable', 'string', 'in:name,number,manager_name'],
             'sort_dir' => ['nullable', 'string', 'in:asc,desc'],
         ];
     }

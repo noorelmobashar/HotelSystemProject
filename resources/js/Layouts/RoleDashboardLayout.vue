@@ -30,17 +30,10 @@ const roleLayouts = {
                 routeName: "dashboard",
             },
             {
-<<<<<<< HEAD
                 label: 'Manage Managers',
                 subtitle: 'Leadership accounts',
                 icon: 'managers',
                 routeName: 'managers.index',
-=======
-                label: "Manage Managers",
-                subtitle: "Leadership accounts",
-                icon: "managers",
-                routeName: null,
->>>>>>> 5b13735357bcb58abbb9d87ab730d608b1cd554c
             },
             {
                 label: "Manage Receptionists",

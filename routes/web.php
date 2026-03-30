@@ -2,12 +2,8 @@
 
 use App\Http\Controllers\FloorController;
 use App\Http\Controllers\ProfileController;
-<<<<<<< HEAD
-use Illuminate\Http\Request;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManagerController;
-=======
->>>>>>> 5b13735357bcb58abbb9d87ab730d608b1cd554c
 use App\Http\Controllers\ReceptionistController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\ReservationPaymentController;

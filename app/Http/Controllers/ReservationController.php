@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Reservation;
 use App\Models\Room;
 use Illuminate\Http\RedirectResponse;
@@ -15,28 +18,58 @@ use Stripe\Stripe;
 
 class ReservationController extends Controller
 {
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
+        ]);
+
+        $perPage = (int) ($validated['per_page'] ?? 10);
+
         $rooms = Room::query()
             ->with('floor:id,name,number')
-            ->whereDoesntHave('reservations', fn($query) => $query->active())
+            ->whereDoesntHave('reservations', function (Builder $query) {
+                $query
+                    ->where('is_active', true)
+                    ->where(function (Builder $builder) {
+                        $builder
+                            ->whereNull('check_out_date')
+                            ->orWhereDate('check_out_date', '>=', now()->toDateString());
+                    });
+            })
             ->orderBy('number')
-            ->get(['id', 'number', 'capacity', 'price', 'floor_id'])
-            ->map(fn(Room $room) => [
+            ->paginate($perPage, ['id', 'number', 'capacity', 'price', 'floor_id'])
+            ->through(fn(Room $room) => [
                 'id' => $room->id,
                 'number' => $room->number,
                 'capacity' => $room->capacity,
                 'price' => $room->price,
                 'floor' => $room->floor?->name ?? $room->floor?->number,
-            ]);
+            ])
+            ->withQueryString();
 
         return Inertia::render('Reservations/MakeReservation', [
             'rooms' => $rooms,
+            'filters' => [
+                'per_page' => $perPage,
+            ],
         ]);
     }
 
-    public function showRoomReservation(int $roomId): Response|RedirectResponse
+    public function showRoomReservation(Request $request, int $roomId): Response|RedirectResponse
     {
+        $validated = $request->validate([
+            'check_in_date' => ['nullable', 'date', 'after_or_equal:today'],
+            'check_out_date' => ['nullable', 'date', 'after:check_in_date'],
+        ]);
+
+        $checkInDate = $validated['check_in_date'] ?? null;
+        $checkOutDate = $validated['check_out_date'] ?? null;
+        $nights = $checkInDate && $checkOutDate
+            ? Carbon::parse($checkInDate)->diffInDays(Carbon::parse($checkOutDate))
+            : null;
+
         $room = Room::query()
             ->with('floor:id,name,number')
             ->whereKey($roomId)
@@ -44,14 +77,14 @@ class ReservationController extends Controller
 
         if (!$room) {
             return redirect()
-                ->route('reservations.create')
+                ->route('reservations.create', $validated)
                 ->with('error', 'Room not found.');
         }
 
-        if ($room->reservations()->active()->exists()) {
+        if ($checkInDate && $checkOutDate && $this->hasRoomConflict($room, $checkInDate, $checkOutDate)) {
             return redirect()
-                ->route('reservations.create')
-                ->with('error', 'This room is already reserved.');
+                ->route('reservations.create', $validated)
+                ->with('error', 'This room is not available for the selected period.');
         }
 
         return Inertia::render('Reservations/RoomReservation', [
@@ -61,6 +94,10 @@ class ReservationController extends Controller
                 'capacity' => $room->capacity,
                 'price' => $room->price,
                 'floor' => $room->floor?->name ?? $room->floor?->number,
+                'check_in_date' => $checkInDate ?? '',
+                'check_out_date' => $checkOutDate ?? '',
+                'nights' => $nights,
+                'total_price' => $nights ? $room->price * $nights : null,
             ],
         ]);
     }
@@ -70,21 +107,35 @@ class ReservationController extends Controller
         $room = Room::query()->whereKey($roomId)->firstOrFail();
 
         $validated = $request->validate([
+            'check_in_date' => ['required', 'date', 'after_or_equal:today'],
+            'check_out_date' => ['required', 'date', 'after:check_in_date'],
             'accompany_number' => ['required', 'integer', 'min:0', 'max:' . $room->capacity],
         ], [
             'accompany_number.max' => 'The accompany number cannot exceed the room capacity (' . $room->capacity . ').',
         ]);
 
-        if ($room->reservations()->active()->exists()) {
+        $checkInDate = $validated['check_in_date'];
+        $checkOutDate = $validated['check_out_date'];
+        $nights = Carbon::parse($checkInDate)->diffInDays(Carbon::parse($checkOutDate));
+        $totalPrice = (int) ($room->price * $nights);
+
+        if ($this->hasRoomConflict($room, $checkInDate, $checkOutDate)) {
             return redirect()
-                ->route('reservations.create')
-                ->with('error', 'This room is no longer available for reservation.');
+                ->route('reservations.create', [
+                    'check_in_date' => $checkInDate,
+                    'check_out_date' => $checkOutDate,
+                ])
+                ->with('error', 'This room is no longer available for the selected dates.');
         }
 
         $stripeSecret = config('services.stripe.secret');
         if (!$stripeSecret) {
             return redirect()
-                ->route('reservations.rooms.show', ['roomId' => $room->id])
+                ->route('reservations.rooms.show', [
+                    'roomId' => $room->id,
+                    'check_in_date' => $checkInDate,
+                    'check_out_date' => $checkOutDate,
+                ])
                 ->with('error', 'Stripe is not configured. Please set STRIPE_SECRET.');
         }
 
@@ -106,27 +157,38 @@ class ReservationController extends Controller
                 'ui_mode' => 'hosted_page',
                 'payment_method_types' => $paymentMethodTypes,
                 'success_url' => route('reservations.checkout.success') . '?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url' => route('reservations.rooms.show', ['roomId' => $room->id]),
+                'cancel_url' => route('reservations.rooms.show', [
+                    'roomId' => $room->id,
+                    'check_in_date' => $checkInDate,
+                    'check_out_date' => $checkOutDate,
+                ]),
                 'client_reference_id' => (string) $request->user()->id,
                 'metadata' => [
                     'room_id' => (string) $room->id,
                     'client_id' => (string) $request->user()->id,
                     'accompany_number' => (string) $validated['accompany_number'],
+                    'check_in_date' => $checkInDate,
+                    'check_out_date' => $checkOutDate,
+                    'nights' => (string) $nights,
                 ],
                 'line_items' => [[
                     'quantity' => 1,
                     'price_data' => [
                         'currency' => $currency,
                         'product_data' => [
-                            'name' => 'Room ' . $room->number . ' Reservation',
+                            'name' => 'Room ' . $room->number . ' Reservation (' . $nights . ' nights)',
                         ],
-                        'unit_amount' => (int) round($room->price * 100),
+                        'unit_amount' => (int) round($totalPrice * 100),
                     ],
                 ]],
             ]);
         } catch (ApiErrorException $exception) {
             return redirect()
-                ->route('reservations.rooms.show', ['roomId' => $room->id])
+                ->route('reservations.rooms.show', [
+                    'roomId' => $room->id,
+                    'check_in_date' => $checkInDate,
+                    'check_out_date' => $checkOutDate,
+                ])
                 ->with('error', 'Unable to initiate Stripe checkout. ' . $exception->getMessage());
         }
 
@@ -168,8 +230,24 @@ class ReservationController extends Controller
         $clientReferenceId = (int) ($checkoutSession->client_reference_id ?? 0);
         $clientId = $clientReferenceId > 0 ? $clientReferenceId : $metadataClientId;
         $accompanyNumber = (int) ($metadata['accompany_number'] ?? 0);
+        $checkInDate = (string) ($metadata['check_in_date'] ?? '');
+        $checkOutDate = (string) ($metadata['check_out_date'] ?? '');
 
-        if ($clientId !== (int) $request->user()->id || $roomId <= 0) {
+        if ($clientId !== (int) $request->user()->id || $roomId <= 0 || $checkInDate === '' || $checkOutDate === '') {
+            return redirect()
+                ->route('reservations.create')
+                ->with('error', 'Invalid payment confirmation data.');
+        }
+
+        try {
+            $nights = Carbon::parse($checkInDate)->diffInDays(Carbon::parse($checkOutDate));
+        } catch (\Throwable $exception) {
+            return redirect()
+                ->route('reservations.create')
+                ->with('error', 'Invalid reservation dates in payment confirmation.');
+        }
+
+        if ($nights < 1) {
             return redirect()
                 ->route('reservations.create')
                 ->with('error', 'Invalid payment confirmation data.');
@@ -182,15 +260,23 @@ class ReservationController extends Controller
                 ->with('error', 'The selected room no longer exists.');
         }
 
+        $totalPrice = (int) ($room->price * $nights);
+
         if ($accompanyNumber > $room->capacity) {
             return redirect()
-                ->route('reservations.rooms.show', ['roomId' => $room->id])
+                ->route('reservations.rooms.show', [
+                    'roomId' => $room->id,
+                    'check_in_date' => $checkInDate,
+                    'check_out_date' => $checkOutDate,
+                ])
                 ->with('error', 'The accompany number cannot exceed room capacity.');
         }
 
         $existingReservation = Reservation::query()
             ->where('client_id', $request->user()->id)
             ->where('room_id', $room->id)
+            ->whereDate('check_in_date', $checkInDate)
+            ->whereDate('check_out_date', $checkOutDate)
             ->active()
             ->first();
 
@@ -200,17 +286,22 @@ class ReservationController extends Controller
                 ->with('success', 'Reservation confirmed.');
         }
 
-        if ($room->reservations()->active()->exists()) {
+        if ($this->hasRoomConflict($room, $checkInDate, $checkOutDate)) {
             return redirect()
-                ->route('reservations.create')
-                ->with('error', 'This room is no longer available.');
+                ->route('reservations.create', [
+                    'check_in_date' => $checkInDate,
+                    'check_out_date' => $checkOutDate,
+                ])
+                ->with('error', 'This room is no longer available for the selected dates.');
         }
 
         Reservation::create([
             'client_id' => $request->user()->id,
             'room_id' => $room->id,
+            'check_in_date' => $checkInDate,
+            'check_out_date' => $checkOutDate,
             'accompany_number' => $accompanyNumber,
-            'paid_price' => $room->price,
+            'paid_price' => $totalPrice,
             'is_active' => true,
         ]);
 
@@ -221,23 +312,63 @@ class ReservationController extends Controller
 
     public function index(Request $request): Response
     {
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
+        ]);
+
+        $perPage = (int) ($validated['per_page'] ?? 10);
+
         $reservations = Reservation::query()
             ->with('room:id,number,capacity,price')
             ->where('client_id', $request->user()->id)
             ->latest()
-            ->get()
-            ->map(fn(Reservation $reservation) => [
+            ->paginate($perPage)
+            ->through(fn(Reservation $reservation) => [
                 'id' => $reservation->id,
                 'room_number' => $reservation->room?->number,
+                'check_in_date' => $reservation->check_in_date?->format('Y-m-d'),
+                'check_out_date' => $reservation->check_out_date?->format('Y-m-d'),
+                'nights' => $reservation->check_in_date && $reservation->check_out_date
+                    ? $reservation->check_in_date->diffInDays($reservation->check_out_date)
+                    : null,
                 'capacity' => $reservation->room?->capacity,
                 'accompany_number' => $reservation->accompany_number,
                 'paid_price' => $reservation->paid_price,
                 'is_active' => $reservation->is_active,
                 'created_at' => $reservation->created_at?->format('Y-m-d H:i'),
-            ]);
+            ])
+            ->withQueryString();
 
         return Inertia::render('Reservations/MyReservations', [
             'reservations' => $reservations,
+            'filters' => [
+                'per_page' => $perPage,
+            ],
         ]);
+    }
+
+    private function hasRoomConflict(Room $room, string $checkInDate, string $checkOutDate): bool
+    {
+        $query = $room->reservations();
+        $this->applyOverlappingActiveFilter($query, $checkInDate, $checkOutDate);
+
+        return $query->exists();
+    }
+
+    private function applyOverlappingActiveFilter(Builder|HasMany $query, string $checkInDate, string $checkOutDate): void
+    {
+        $query
+            ->where('is_active', true)
+            ->where(function (Builder $builder) use ($checkInDate, $checkOutDate) {
+                $builder
+                    ->where(function (Builder $overlap) use ($checkInDate, $checkOutDate) {
+                        $overlap
+                            ->whereDate('check_in_date', '<', $checkOutDate)
+                            ->whereDate('check_out_date', '>', $checkInDate);
+                    })
+                    ->orWhereNull('check_in_date')
+                    ->orWhereNull('check_out_date');
+            });
     }
 }

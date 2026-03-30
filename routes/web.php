@@ -31,14 +31,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
-    Route::get('/reservations/create', [ReservationController::class, 'create'])->name('reservations.create');
-    Route::get('/reservations/rooms/{roomId}', [ReservationController::class, 'showRoomReservation'])
-        ->name('reservations.rooms.show');
-    Route::post('/reservations/rooms/{roomId}/checkout', [ReservationController::class, 'checkout'])
-        ->name('reservations.rooms.checkout');
-    Route::get('/reservations/checkout/success', [ReservationController::class, 'checkoutSuccess'])
-        ->name('reservations.checkout.success');
+    Route::controller(ReservationController::class)->group(function () {
+            Route::get('/reservations', 'index')->name('reservations.index');
+            Route::get('/reservations/create', 'create')->name('reservations.create');
+            Route::get('/reservations/rooms/{roomId}', 'showRoomReservation')->name('reservations.rooms.show');
+            Route::post('/reservations/rooms/{roomId}/checkout', 'checkout')->name('reservations.rooms.checkout');
+            Route::get('/reservations/checkout/success', 'checkoutSuccess')->name('reservations.checkout.success');
+    }   );
 
     Route::middleware('role:admin|manager')->group(function () {
         Route::resource('floors', FloorController::class)->except('show');

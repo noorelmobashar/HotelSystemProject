@@ -1,15 +1,106 @@
 <script setup>
+import {
+    createColumnHelper,
+    FlexRender,
+    getCoreRowModel,
+    useVueTable,
+} from '@tanstack/vue-table';
+import { computed } from 'vue';
 import RoleDashboardLayout from '@/Layouts/RoleDashboardLayout.vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
     rooms: {
-        type: Array,
-        default: () => [],
+        type: Object,
+        default: () => ({
+            data: [],
+            current_page: 1,
+            last_page: 1,
+            per_page: 10,
+            total: 0,
+        }),
+    },
+    filters: {
+        type: Object,
+        default: () => ({
+            per_page: 10,
+        }),
     },
 });
 
 const page = usePage();
+
+const roomRows = computed(() => props.rooms?.data ?? []);
+const currentPage = computed(() => props.rooms?.current_page ?? 1);
+const lastPage = computed(() => props.rooms?.last_page ?? 1);
+const totalRooms = computed(() => props.rooms?.total ?? 0);
+const perPage = computed(() => Number(props.rooms?.per_page ?? props.filters?.per_page ?? 10));
+
+const paginationState = computed(() => ({
+    pageIndex: Math.max(currentPage.value - 1, 0),
+    pageSize: perPage.value,
+}));
+
+const columnHelper = createColumnHelper();
+
+const columns = [
+    columnHelper.accessor('number', {
+        header: 'Room Number',
+        cell: (info) => info.getValue(),
+    }),
+    columnHelper.accessor('floor', {
+        header: 'Floor',
+        cell: (info) => info.getValue() ?? 'N/A',
+    }),
+    columnHelper.accessor('price', {
+        header: 'Price',
+        cell: (info) => formatPrice(info.getValue()),
+    }),
+    columnHelper.accessor('capacity', {
+        header: 'Capacity',
+        cell: (info) => info.getValue(),
+    }),
+    columnHelper.display({
+        id: 'action',
+        header: 'Action',
+    }),
+];
+
+const table = useVueTable({
+    get data() {
+        return roomRows.value;
+    },
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    get pageCount() {
+        return lastPage.value;
+    },
+    state: {
+        get pagination() {
+            return paginationState.value;
+        },
+    },
+});
+
+const loadPage = (nextPage, nextPerPage = perPage.value) => {
+    router.get(
+        route('reservations.create'),
+        {
+            page: nextPage,
+            per_page: nextPerPage,
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        },
+    );
+};
+
+const changePerPage = (event) => {
+    loadPage(1, Number(event.target.value));
+};
 
 const formatPrice = (value) => {
     return new Intl.NumberFormat('en-US', {
@@ -49,57 +140,50 @@ const formatPrice = (value) => {
                 <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
-                            <tr>
-                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Room Number
-                                </th>
-                                <!-- Floor -->
-                                 <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Floor   
-                                </th>
-                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Price
-                                </th>
-                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Capacity
-                                </th>
-                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Action
+                            <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+                                <th
+                                    v-for="header in headerGroup.headers"
+                                    :key="header.id"
+                                    class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                                >
+                                    <FlexRender
+                                        v-if="!header.isPlaceholder"
+                                        :render="header.column.columnDef.header"
+                                        :props="header.getContext()"
+                                    />
                                 </th>
                             </tr>
                         </thead>
 
                         <tbody class="divide-y divide-slate-200">
                             <tr
-                                v-for="room in props.rooms"
-                                :key="room.id"
+                                v-for="row in table.getRowModel().rows"
+                                :key="row.id"
                                 class="hover:bg-slate-50"
                             >
-                                <td class="px-5 py-4 text-sm font-medium text-slate-700">
-                                    {{ room.number }}
-                                </td>
-                                <td class="px-5 py-4 text-sm text-slate-600">
-                                    {{ room.floor ?? 'N/A' }}
-                                </td>
-                                <td class="px-5 py-4 text-sm text-slate-600">
-                                    {{ formatPrice(room.price) }}
-                                </td>
-                                <td class="px-5 py-4 text-sm text-slate-600">
-                                    {{ room.capacity }}
-                                </td>
-                                <td class="px-5 py-4">
+                                <td
+                                    v-for="cell in row.getVisibleCells()"
+                                    :key="cell.id"
+                                    class="px-5 py-4 text-sm text-slate-600"
+                                >
                                     <Link
-                                        :href="route('reservations.rooms.show', { roomId: room.id })"
+                                        v-if="cell.column.id === 'action'"
+                                        :href="route('reservations.rooms.show', { roomId: row.original.id })"
                                         class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         Make Reservation
                                     </Link>
+                                    <FlexRender
+                                        v-else
+                                        :render="cell.column.columnDef.cell"
+                                        :props="cell.getContext()"
+                                    />
                                 </td>
                             </tr>
 
-                            <tr v-if="props.rooms.length === 0">
+                            <tr v-if="table.getRowModel().rows.length === 0">
                                 <td
-                                    colspan="4"
+                                    colspan="5"
                                     class="px-5 py-8 text-center text-sm text-slate-500"
                                 >
                                     No available rooms at the moment.
@@ -107,6 +191,45 @@ const formatPrice = (value) => {
                             </tr>
                         </tbody>
                     </table>
+
+                    <div class="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            Showing {{ roomRows.length }} of {{ totalRooms }} rooms.
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <label class="text-slate-500" for="rooms-per-page">Rows per page</label>
+                            <select
+                                id="rooms-per-page"
+                                class="rounded-md border border-slate-300 px-2 py-1"
+                                :value="perPage"
+                                @change="changePerPage"
+                            >
+                                <option :value="5">5</option>
+                                <option :value="10">10</option>
+                                <option :value="15">15</option>
+                                <option :value="20">20</option>
+                            </select>
+
+                            <button
+                                type="button"
+                                class="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-50"
+                                :disabled="currentPage <= 1"
+                                @click="loadPage(currentPage - 1)"
+                            >
+                                Previous
+                            </button>
+                            <span>Page {{ currentPage }} of {{ lastPage }}</span>
+                            <button
+                                type="button"
+                                class="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-50"
+                                :disabled="currentPage >= lastPage"
+                                @click="loadPage(currentPage + 1)"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

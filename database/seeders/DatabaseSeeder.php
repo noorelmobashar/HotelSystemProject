@@ -15,9 +15,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        
+
         $this->call([
-            RoleSeeder::class,  
+            RoleSeeder::class,
             PermissionSeeder::class,
         ]);
 
@@ -73,7 +73,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             FloorSeeder::class,
+            RoomSeeder::class,
         ]);
-
     }
 }

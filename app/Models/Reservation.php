@@ -10,6 +10,8 @@ class Reservation extends Model
 
     protected $casts = [
         'is_active' => 'bool',
+        'check_in_date' => 'date',
+        'check_out_date' => 'date',
     ];
 
     public function client()

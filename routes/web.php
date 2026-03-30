@@ -1,11 +1,18 @@
 <?php
 
+use App\Http\Controllers\FloorController;
 use App\Http\Controllers\ProfileController;
+<<<<<<< HEAD
 use Illuminate\Http\Request;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManagerController;
+=======
+>>>>>>> 5b13735357bcb58abbb9d87ab730d608b1cd554c
 use App\Http\Controllers\ReceptionistController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\ReservationPaymentController;
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -17,6 +24,8 @@ Route::get('/', function (Request $request) {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
+        'laravelVersion' => Application::VERSION,
+        'phpVersion' => PHP_VERSION,
     ]);
 });
 
@@ -29,9 +38,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
-    Route::get('/reservations/create', [ReservationController::class, 'create'])->name('reservations.create');
-    Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');
+    Route::controller(ReservationController::class)->group(function () {
+        Route::get('/reservations', 'index')->name('reservations.index');
+        Route::get('/reservations/create', 'create')->name('reservations.create');
+        Route::get('/reservations/rooms/{roomId}', 'showRoomReservation')->name('reservations.rooms.show');
+    });
+
+    Route::controller(ReservationPaymentController::class)->group(function () {
+        Route::post('/reservations/rooms/{roomId}/checkout', 'checkout')->name('reservations.rooms.checkout');
+        Route::get('/reservations/checkout/success', 'checkoutSuccess')->name('reservations.checkout.success');
+    });
 
     Route::middleware('role:admin')->group(function () {
         Route::get('/managers', [ManagerController::class, 'index'])->name('managers.index');
@@ -41,33 +57,12 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('role:admin|manager')->group(function () {
+        Route::resource('floors', FloorController::class)->except('show');
         Route::get('/receptionists', [ReceptionistController::class, 'index'])->name('receptionists.index');
         Route::post('/receptionists', [ReceptionistController::class, 'store'])->name('receptionists.store');
         Route::put('/receptionists/{receptionist}', [ReceptionistController::class, 'update'])->name('receptionists.update');
         Route::delete('/receptionists/{receptionist}', [ReceptionistController::class, 'destroy'])->name('receptionists.destroy');
     });
 });
-
-//add the route in the gruop  depend on the role
-//admin
-//manager
-//receptionist
-//client
-
-
-// Route::middleware(['auth', 'role:admin'])->group(function () {
-// });
-
-
-// Route::middleware(['auth', 'role:manager'])->group(function () {
-// });
-
-// Route::middleware(['auth', 'role:manager|admin'])->group(function () {
-// });
-
-// Route::middleware(['auth', 'role:receptionist'])->group(function () {
-// });
-
-
 
 require __DIR__.'/auth.php';

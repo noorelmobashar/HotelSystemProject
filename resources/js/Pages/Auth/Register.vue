@@ -5,16 +5,36 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 
 const form = useForm({
     name: '',
     email: '',
+    avatar_image: null,
     password: '',
     password_confirmation: '',
 });
 
+const localImagePreview = ref(null);
+
+const avatarPreview = computed(() => localImagePreview.value || '/images/default-avatar.svg');
+
+const onAvatarChange = (event) => {
+    const [file] = event.target.files ?? [];
+
+    if (!file) {
+        form.avatar_image = null;
+        localImagePreview.value = null;
+        return;
+    }
+
+    form.avatar_image = file;
+    localImagePreview.value = URL.createObjectURL(file);
+};
+
 const submit = () => {
     form.post(route('register'), {
+        forceFormData: true,
         onFinish: () => form.reset('password', 'password_confirmation'),
     });
 };
@@ -75,6 +95,35 @@ const submit = () => {
                 />
 
                 <InputError class="mt-2" :message="form.errors.email" />
+            </div>
+
+            <div>
+                <InputLabel for="avatar_image" value="Profile Image" />
+
+                <div class="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div class="flex items-center gap-4">
+                        <img
+                            :src="avatarPreview"
+                            alt="Profile avatar preview"
+                            class="h-16 w-16 rounded-2xl border border-slate-200 object-cover"
+                        >
+
+                        <div class="min-w-0">
+                            <input
+                                id="avatar_image"
+                                type="file"
+                                accept="image/png,image/jpeg,image/jpg,image/webp"
+                                class="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+                                @change="onAvatarChange"
+                            >
+                            <p class="mt-2 text-sm text-slate-500">
+                                Upload a profile image now, or continue and we will assign a default avatar.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <InputError class="mt-2" :message="form.errors.avatar_image" />
             </div>
 
             <div>

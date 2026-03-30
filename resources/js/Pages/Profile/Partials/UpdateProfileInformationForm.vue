@@ -33,10 +33,14 @@ const avatarPreview = computed(() => {
     }
 
     if (!user.avatar_image) {
-        return null;
+        return '/images/default-avatar.svg';
     }
 
     if (String(user.avatar_image).startsWith('http')) {
+        return user.avatar_image;
+    }
+
+    if (String(user.avatar_image).startsWith('/')) {
         return user.avatar_image;
     }
 

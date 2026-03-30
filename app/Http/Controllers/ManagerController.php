@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,11 +12,11 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class ReceptionistController extends Controller
+class ManagerController extends Controller
 {
     public function index(Request $request): Response
     {
-        $this->authorizeManagement($request);
+        $this->authorizeAdmin($request);
 
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = in_array($perPage, [10, 20, 50], true) ? $perPage : 10;
@@ -40,8 +41,8 @@ class ReceptionistController extends Controller
             $sortDir = 'desc';
         }
 
-        $receptionists = User::query()
-            ->role('receptionist')
+        $managers = User::query()
+            ->role('manager')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($nestedQuery) use ($search) {
                     $nestedQuery
@@ -73,8 +74,8 @@ class ReceptionistController extends Controller
                 ];
             });
 
-        return Inertia::render('Receptionists/Index', [
-            'receptionists' => $receptionists,
+        return Inertia::render('Managers/Index', [
+            'managers' => $managers,
             'filters' => [
                 'search' => $search,
                 'per_page' => $perPage,
@@ -86,7 +87,7 @@ class ReceptionistController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $this->authorizeManagement($request);
+        $this->authorizeAdmin($request);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -96,7 +97,7 @@ class ReceptionistController extends Controller
             'password' => ['required', 'string', 'min:6', 'confirmed'],
         ]);
 
-        $receptionist = User::create([
+        $manager = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
@@ -104,73 +105,73 @@ class ReceptionistController extends Controller
             'national_id' => $validated['national_id'] ?? null,
         ]);
 
-        $receptionist->assignRole('receptionist');
+        $manager->assignRole('manager');
 
-        $receptionist->created_by = $request->user()->id;
-        $receptionist->approved_by = $request->user()->id;
-        $receptionist->approved_at = now();
-        $receptionist->save();
+        $manager->created_by = $request->user()->id;
+        $manager->approved_by = $request->user()->id;
+        $manager->approved_at = now();
+        $manager->save();
 
         return redirect()
-            ->route('receptionists.index')
-            ->with('success', 'Receptionist created successfully.');
+            ->route('managers.index')
+            ->with('success', 'Manager created successfully.');
     }
 
-    public function update(Request $request, User $receptionist): RedirectResponse
+    public function update(Request $request, User $manager): RedirectResponse
     {
-        $this->authorizeManagement($request);
-        $this->ensureReceptionist($receptionist);
+        $this->authorizeAdmin($request);
+        $this->ensureManager($manager);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($receptionist->id)],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($manager->id)],
             'password' => ['nullable', 'string', 'min:6', 'confirmed'],
         ]);
 
-        $receptionist->name = $validated['name'];
-        $receptionist->email = $validated['email'];
+        $manager->name = $validated['name'];
+        $manager->email = $validated['email'];
 
         if (!empty($validated['password'])) {
-            $receptionist->password = Hash::make($validated['password']);
+            $manager->password = Hash::make($validated['password']);
         }
 
-        $receptionist->save();
+        $manager->save();
 
         return redirect()
-            ->route('receptionists.index')
-            ->with('success', 'Receptionist updated successfully.');
+            ->route('managers.index')
+            ->with('success', 'Manager updated successfully.');
     }
 
-    public function destroy(Request $request, User $receptionist)
+    public function destroy(Request $request, User $manager): JsonResponse|RedirectResponse
     {
-        $this->authorizeManagement($request);
-        $this->ensureReceptionist($receptionist);
+        $this->authorizeAdmin($request);
+        $this->ensureManager($manager);
 
-        if (!empty($receptionist->avatar_image) && !str_starts_with($receptionist->avatar_image, 'http') && !str_starts_with($receptionist->avatar_image, '/')) {
-            Storage::disk('public')->delete($receptionist->avatar_image);
+        if (!empty($manager->avatar_image) && !str_starts_with($manager->avatar_image, 'http') && !str_starts_with($manager->avatar_image, '/')) {
+            Storage::disk('public')->delete($manager->avatar_image);
         }
 
-        $receptionist->delete();
+        $manager->delete();
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Receptionist deleted successfully.',
+                'message' => 'Manager deleted successfully.',
             ]);
         }
 
         return redirect()
-            ->route('receptionists.index')
-            ->with('success', 'Receptionist deleted successfully.');
+            ->route('managers.index')
+            ->with('success', 'Manager deleted successfully.');
     }
 
-    private function authorizeManagement(Request $request): void
+    private function authorizeAdmin(Request $request): void
     {
-        abort_unless($request->user()?->hasAnyRole(['admin', 'manager']), 403);
+        abort_unless($request->user()?->hasRole('admin'), 403);
     }
 
-    private function ensureReceptionist(User $user): void
+    private function ensureManager(User $user): void
     {
-        abort_unless($user->hasRole('receptionist'), 404);
+        abort_unless($user->hasRole('manager'), 404);
     }
 }

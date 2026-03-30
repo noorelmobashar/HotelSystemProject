@@ -36,7 +36,7 @@ class ProfileController extends Controller
         $user->fill($validated);
 
         if ($request->hasFile('avatar_image')) {
-            if (!empty($user->avatar_image)) {
+            if (!empty($user->avatar_image) && !str_starts_with($user->avatar_image, 'http') && !str_starts_with($user->avatar_image, '/')) {
                 Storage::disk('public')->delete($user->avatar_image);
             }
 

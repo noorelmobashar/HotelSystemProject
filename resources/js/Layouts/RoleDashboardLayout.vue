@@ -33,7 +33,7 @@ const roleLayouts = {
                 label: 'Manage Managers',
                 subtitle: 'Leadership accounts',
                 icon: 'managers',
-                routeName: null,
+                routeName: 'managers.index',
             },
             {
                 label: 'Manage Receptionists',
@@ -208,10 +208,14 @@ const userAvatarUrl = computed(() => {
     const avatar = user.value?.avatar_image;
 
     if (!avatar) {
-        return null;
+        return '/images/default-avatar.svg';
     }
 
     if (String(avatar).startsWith('http')) {
+        return avatar;
+    }
+
+    if (String(avatar).startsWith('/')) {
         return avatar;
     }
 

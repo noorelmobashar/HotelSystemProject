@@ -13,7 +13,28 @@ const props = defineProps({
 
 const page = usePage();
 
-const today = new Date().toISOString().split('T')[0];
+const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+};
+
+const parseDateOnly = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    const [year, month, day] = value.split('-').map(Number);
+    if (!year || !month || !day) {
+        return null;
+    }
+
+    return new Date(year, month - 1, day);
+};
+
+const today = formatLocalDate(new Date());
 
 const form = useForm({
     accompany_number: 0,
@@ -26,11 +47,17 @@ const nights = computed(() => {
         return 0;
     }
 
-    const start = new Date(form.check_in_date);
-    const end = new Date(form.check_out_date);
-    const diffMs = end - start;
+    const start = parseDateOnly(form.check_in_date);
+    const end = parseDateOnly(form.check_out_date);
 
-    return diffMs > 0 ? Math.ceil(diffMs / (1000 * 60 * 60 * 24)) : 0;
+    if (!start || !end) {
+        return 0;
+    }
+
+    const diffMs = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate())
+        - Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+
+    return diffMs > 0 ? diffMs / (1000 * 60 * 60 * 24) : 0;
 });
 
 const totalPrice = computed(() => {
@@ -42,10 +69,18 @@ const checkOutMin = computed(() => {
         return today;
     }
 
-    const nextDay = new Date(form.check_in_date);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const checkInDate = parseDateOnly(form.check_in_date);
+    if (!checkInDate) {
+        return today;
+    }
 
-    return nextDay.toISOString().split('T')[0];
+    const nextDay = new Date(
+        checkInDate.getFullYear(),
+        checkInDate.getMonth(),
+        checkInDate.getDate() + 1,
+    );
+
+    return formatLocalDate(nextDay);
 });
 
 const submit = () => {

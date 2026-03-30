@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\FloorController;
 use App\Http\Controllers\ProfileController;
-use Illuminate\Http\Request;
 use App\Http\Controllers\ReceptionistController;
 use App\Http\Controllers\ReservationController;
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -15,6 +17,8 @@ Route::get('/', function (Request $request) {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
+        'laravelVersion' => Application::VERSION,
+        'phpVersion' => PHP_VERSION,
     ]);
 });
 
@@ -26,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::resource('floors', FloorController::class)->except('show');
 
     Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
     Route::get('/reservations/create', [ReservationController::class, 'create'])->name('reservations.create');
@@ -38,27 +43,5 @@ Route::middleware('auth')->group(function () {
         Route::delete('/receptionists/{receptionist}', [ReceptionistController::class, 'destroy'])->name('receptionists.destroy');
     });
 });
-
-//add the route in the gruop  depend on the role
-//admin
-//manager
-//receptionist
-//client
-
-
-// Route::middleware(['auth', 'role:admin'])->group(function () {
-// });
-
-
-// Route::middleware(['auth', 'role:manager'])->group(function () {
-// });
-
-// Route::middleware(['auth', 'role:manager|admin'])->group(function () {
-// });
-
-// Route::middleware(['auth', 'role:receptionist'])->group(function () {
-// });
-
-
 
 require __DIR__.'/auth.php';

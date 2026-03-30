@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\FloorController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReceptionistController;
+use App\Http\Controllers\ReservationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -26,5 +28,4 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('floors', FloorController::class)->except('show');
 });
-
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

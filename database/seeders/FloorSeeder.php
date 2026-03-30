@@ -13,11 +13,12 @@ class FloorSeeder extends Seeder
      */
     public function run(): void
     {
-        $managerIds = User::role('manager')->pluck('id')->values();
+        $managerTwo = User::where('email', 'manager2@manager.com')->first();
 
-        if ($managerIds->isEmpty()) {
-            return;
-        }
+        $managerIds = User::role('manager')
+            ->when($managerTwo, fn ($query) => $query->where('id', '!=', $managerTwo->id))
+            ->pluck('id')
+            ->values();
 
         $floors = [
             ['name' => 'Ground Floor', 'number' => '1000'],
@@ -26,15 +27,37 @@ class FloorSeeder extends Seeder
             ['name' => 'Third Floor', 'number' => '1003'],
         ];
 
-        foreach ($floors as $index => $floor) {
-            $createdBy = $managerIds[$index % $managerIds->count()];
+        if ($managerIds->isNotEmpty()) {
+            foreach ($floors as $index => $floor) {
+                $createdBy = $managerIds[$index % $managerIds->count()];
 
+                Floor::updateOrCreate(
+                    ['number' => $floor['number']],
+                    [
+                        'name' => $floor['name'],
+                        'number' => $floor['number'],
+                        'created_by' => $createdBy,
+                    ]
+                );
+            }
+        }
+
+        if (! $managerTwo) {
+            return;
+        }
+
+        $managerTwoFloors = [
+            ['name' => 'Manager Two Floor 1', 'number' => '2000'],
+            ['name' => 'Manager Two Floor 2', 'number' => '2001'],
+        ];
+
+        foreach ($managerTwoFloors as $floor) {
             Floor::updateOrCreate(
-                ['name' => $floor['name']],
+                ['number' => $floor['number']],
                 [
                     'name' => $floor['name'],
                     'number' => $floor['number'],
-                    'created_by' => $createdBy,
+                    'created_by' => $managerTwo->id,
                 ]
             );
         }

@@ -27,6 +27,8 @@ const props = defineProps({
         default: () => ({
             search: "",
             per_page: 10,
+            sort_by: null,
+            sort_dir: "asc",
         }),
     },
     isAdmin: {
@@ -50,7 +52,14 @@ const meta = computed(() => ({
 
 const search = ref(String(props.filters?.search ?? ""));
 const perPage = ref(Number(props.filters?.per_page ?? meta.value.perPage));
+const sortBy = ref(String(props.filters?.sort_by ?? ""));
+const sortDir = ref(String(props.filters?.sort_dir ?? "asc"));
 const loading = ref(false);
+const deletingFloorId = ref(null);
+const deleteCandidate = ref(null);
+const deleteModalOpen = ref(false);
+const deleteMessage = ref("");
+const deleteMessageTone = ref("error");
 const isAdmin = computed(() => Boolean(props.isAdmin));
 const hasManageableRows = computed(() =>
     rows.value.some((row) => Boolean(row.can_manage)),
@@ -110,6 +119,8 @@ const queryParams = (page) => ({
     page,
     search: search.value || undefined,
     per_page: perPage.value,
+    sort_by: sortBy.value || undefined,
+    sort_dir: sortBy.value ? sortDir.value : undefined,
 });
 
 const loadPage = (page) => {
@@ -121,6 +132,90 @@ const loadPage = (page) => {
         replace: true,
         onFinish: () => {
             loading.value = false;
+        },
+    });
+};
+
+const isSortableColumn = (column) => ["name", "number"].includes(column);
+
+const sortIndicator = (column) => {
+    if (sortBy.value !== column) {
+        return "<>";
+    }
+
+    return sortDir.value === "asc" ? "^" : "v";
+};
+
+const toggleSort = (column) => {
+    if (!isSortableColumn(column)) {
+        return;
+    }
+
+    if (sortBy.value === column) {
+        sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
+    } else {
+        sortBy.value = column;
+        sortDir.value = "asc";
+    }
+
+    loadPage(1);
+};
+
+const openDeleteModal = (floor) => {
+    if (!floor?.id || !floor?.can_manage) {
+        return;
+    }
+
+    deleteCandidate.value = floor;
+    deleteModalOpen.value = true;
+};
+
+const closeDeleteModal = () => {
+    if (deletingFloorId.value) {
+        return;
+    }
+
+    deleteModalOpen.value = false;
+    deleteCandidate.value = null;
+};
+
+let deleteMessageTimer = null;
+
+const showDeleteMessage = (message, tone = "error") => {
+    deleteMessage.value = message;
+    deleteMessageTone.value = tone;
+    clearTimeout(deleteMessageTimer);
+
+    deleteMessageTimer = setTimeout(() => {
+        deleteMessage.value = "";
+    }, 3200);
+};
+
+const confirmDeleteFloor = () => {
+    const floor = deleteCandidate.value;
+
+    if (!floor?.id || !floor?.can_manage) {
+        return;
+    }
+
+    deletingFloorId.value = floor.id;
+
+    router.delete(route("floors.destroy", floor.id), {
+        preserveState: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            closeDeleteModal();
+            showDeleteMessage("Floor deleted successfully.", "success");
+            loadPage(meta.value.currentPage);
+        },
+        onError: (errors) => {
+            closeDeleteModal();
+            showDeleteMessage(
+                errors.floor || "Unable to delete this floor at the moment.",
+            );
+        },
+        onFinish: () => {
+            deletingFloorId.value = null;
         },
     });
 };
@@ -141,6 +236,7 @@ watch(search, () => {
 
 onBeforeUnmount(() => {
     clearTimeout(searchDebounce);
+    clearTimeout(deleteMessageTimer);
 });
 </script>
 
@@ -156,6 +252,60 @@ onBeforeUnmount(() => {
                 <div
                     class="absolute bottom-2 left-10 h-40 w-40 rounded-full bg-emerald-200/40 blur-3xl"
                 />
+            </div>
+
+            <div
+                v-if="deleteModalOpen"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+                <button
+                    type="button"
+                    class="absolute inset-0 bg-slate-900/45 backdrop-blur-[1px]"
+                    @click="closeDeleteModal"
+                    aria-label="Close delete dialog"
+                />
+
+                <div
+                    class="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_32px_80px_-40px_rgba(15,23,42,0.9)]"
+                >
+                    <p
+                        class="text-[11px] font-semibold uppercase tracking-[0.32em] text-rose-500"
+                    >
+                        Confirm Delete
+                    </p>
+
+                    <h3 class="mt-3 text-xl font-semibold text-slate-900">
+                        Delete this floor?
+                    </h3>
+
+                    <p class="mt-2 text-sm text-slate-500">
+                        You are about to delete
+                        <span class="font-semibold text-slate-700">
+                            {{ deleteCandidate?.name || "this floor" }}
+                        </span>
+                        . This action cannot be undone.
+                    </p>
+
+                    <div class="mt-6 flex items-center justify-end gap-2">
+                        <button
+                            type="button"
+                            :disabled="Boolean(deletingFloorId)"
+                            @click="closeDeleteModal"
+                            class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            type="button"
+                            :disabled="Boolean(deletingFloorId)"
+                            @click="confirmDeleteFloor"
+                            class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition-colors duration-200 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Delete Floor
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="relative mx-auto max-w-6xl px-6 py-8 md:py-10">
@@ -194,9 +344,9 @@ onBeforeUnmount(() => {
                                 v-model.number="perPage"
                                 class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
                             >
+                                <option :value="5">5 / page</option>
                                 <option :value="10">10 / page</option>
-                                <option :value="25">25 / page</option>
-                                <option :value="50">50 / page</option>
+                                <option :value="15">15 / page</option>
                             </select>
 
                             <Link
@@ -209,44 +359,25 @@ onBeforeUnmount(() => {
                     </div>
                 </div>
 
-                <div class="mt-6 grid gap-4 md:grid-cols-3">
-                    <div
-                        class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-                    >
-                        <p
-                            class="text-xs uppercase tracking-[0.24em] text-slate-400"
-                        >
-                            Total Floors
-                        </p>
-                        <p class="mt-2 text-3xl font-semibold text-slate-800">
-                            {{ meta.total }}
-                        </p>
-                    </div>
+                <div
+                    v-if="deleteMessage"
+                    class="mt-4 rounded-2xl border px-4 py-3 text-sm"
+                    :class="
+                        deleteMessageTone === 'success'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-rose-200 bg-rose-50 text-rose-700'
+                    "
+                >
+                    <div class="flex items-center justify-between gap-3">
+                        <p>{{ deleteMessage }}</p>
 
-                    <div
-                        class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-                    >
-                        <p
-                            class="text-xs uppercase tracking-[0.24em] text-slate-400"
+                        <button
+                            type="button"
+                            class="text-xs font-semibold uppercase tracking-[0.18em] opacity-70 transition-opacity duration-150 hover:opacity-100"
+                            @click="deleteMessage = ''"
                         >
-                            Current Page
-                        </p>
-                        <p class="mt-2 text-3xl font-semibold text-slate-800">
-                            {{ meta.currentPage }}
-                        </p>
-                    </div>
-
-                    <div
-                        class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-                    >
-                        <p
-                            class="text-xs uppercase tracking-[0.24em] text-slate-400"
-                        >
-                            Rows Per Page
-                        </p>
-                        <p class="mt-2 text-3xl font-semibold text-slate-800">
-                            {{ meta.perPage }}
-                        </p>
+                            Dismiss
+                        </button>
                     </div>
                 </div>
 
@@ -269,13 +400,46 @@ onBeforeUnmount(() => {
                                                 header.column.id === 'actions',
                                         }"
                                     >
-                                        <FlexRender
-                                            v-if="!header.isPlaceholder"
-                                            :render="
-                                                header.column.columnDef.header
-                                            "
-                                            :props="header.getContext()"
-                                        />
+                                        <template v-if="!header.isPlaceholder">
+                                            <button
+                                                v-if="
+                                                    isSortableColumn(
+                                                        header.column.id,
+                                                    )
+                                                "
+                                                type="button"
+                                                @click="
+                                                    toggleSort(header.column.id)
+                                                "
+                                                class="inline-flex items-center gap-2 text-left hover:text-slate-700"
+                                            >
+                                                <FlexRender
+                                                    :render="
+                                                        header.column.columnDef
+                                                            .header
+                                                    "
+                                                    :props="header.getContext()"
+                                                />
+                                                <span
+                                                    class="text-[10px] text-slate-400"
+                                                >
+                                                    {{
+                                                        sortIndicator(
+                                                            header.column.id,
+                                                        )
+                                                    }}
+                                                </span>
+                                            </button>
+
+                                            <FlexRender
+                                                v-else
+                                                :render="
+                                                    header.column.columnDef
+                                                        .header
+                                                "
+                                                :props="header.getContext()"
+                                            />
+                                        </template>
                                     </th>
                                 </tr>
                             </thead>
@@ -331,21 +495,25 @@ onBeforeUnmount(() => {
                                                     >
                                                         Edit
                                                     </Link>
-                                                    <Link
-                                                        :href="
-                                                            route(
-                                                                'floors.destroy',
+                                                    <button
+                                                        type="button"
+                                                        :disabled="
+                                                            deletingFloorId ===
                                                                 cell.row
                                                                     .original
-                                                                    .id,
+                                                                    .id ||
+                                                            loading
+                                                        "
+                                                        @click="
+                                                            openDeleteModal(
+                                                                cell.row
+                                                                    .original,
                                                             )
                                                         "
-                                                        method="delete"
-                                                        as="button"
-                                                        class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-600 transition-colors duration-200 hover:bg-rose-100"
+                                                        class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-600 transition-colors duration-200 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
                                                     >
                                                         Delete
-                                                    </Link>
+                                                    </button>
                                                 </template>
                                             </div>
                                         </template>

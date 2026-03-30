@@ -2,45 +2,53 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Floor\FloorIndexRequest;
+use App\Http\Requests\Floor\FloorStoreRequest;
+use App\Http\Requests\Floor\FloorUpdateRequest;
 use App\Models\Floor;
+use App\Models\Room;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class FloorController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(FloorIndexRequest $request): Response
     {
         $this->ensureAdminOrManager($request);
 
         $user = $request->user();
         $isAdmin = $user->hasRole('admin');
 
-        $validated = $request->validate([
-            'search' => ['nullable', 'string', 'max:100'],
-            'per_page' => ['nullable', 'integer', 'in:10,25,50'],
-        ]);
+        $validated = $request->validated();
 
         $search = trim((string) ($validated['search'] ?? ''));
         $perPage = (int) ($validated['per_page'] ?? 10);
+        $sortBy = $validated['sort_by'] ?? null;
+        $sortDir = $validated['sort_dir'] ?? 'asc';
 
         $floorsQuery = Floor::query()
             ->with('manager:id,name')
-            ->select(['id', 'name', 'number', 'created_by'])
-            ->orderBy('id');
+            ->select(['id', 'name', 'number', 'created_by']);
+
+        if (in_array($sortBy, ['name', 'number'], true)) {
+            $floorsQuery->orderBy($sortBy, $sortDir)->orderBy('id');
+        } else {
+            $sortBy = null;
+            $sortDir = 'asc';
+            $floorsQuery->orderBy('id');
+        }
 
         if ($search !== '') {
             $floorsQuery->where(function ($query) use ($search) {
                 $query
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('number', 'like', "%{$search}%");
-
-                $query->orWhereHas('manager', function ($managerQuery) use ($search) {
-                    $managerQuery->where('name', 'like', "%{$search}%");
-                });
             });
         }
+
 
         $floors = $floorsQuery
             ->paginate($perPage)
@@ -54,12 +62,13 @@ class FloorController extends Controller
                 ];
             })
             ->withQueryString();
-
         return Inertia::render('Floors/Index', [
             'floors' => $floors,
             'filters' => [
                 'search' => $search,
                 'per_page' => $perPage,
+                'sort_by' => $sortBy,
+                'sort_dir' => $sortDir,
             ],
             'isAdmin' => $isAdmin,
         ]);
@@ -72,13 +81,11 @@ class FloorController extends Controller
         return Inertia::render('Floors/Create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(FloorStoreRequest $request): RedirectResponse
     {
         $this->ensureAdminOrManager($request);
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'min:3', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $generatedNumber = $this->generateFloorNumber();
 
@@ -100,13 +107,11 @@ class FloorController extends Controller
         ]);
     }
 
-    public function update(Request $request, Floor $floor): RedirectResponse
+    public function update(FloorUpdateRequest $request, Floor $floor): RedirectResponse
     {
         $this->ensureCanManageFloor($request, $floor);
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'min:3', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $floor->update([
             'name' => $validated['name'],
@@ -119,9 +124,15 @@ class FloorController extends Controller
     {
         $this->ensureCanManageFloor($request, $floor);
 
+        if (Room::query()->where('floor_id', $floor->id)->exists()) {
+            throw ValidationException::withMessages([
+                'floor' => 'Cannot delete this floor because rooms are attached to it.',
+            ]);
+        }
+
         $floor->delete();
 
-        return redirect()->route('floors.index');
+        return redirect()->back();
     }
 
     private function ensureAdminOrManager(Request $request): void

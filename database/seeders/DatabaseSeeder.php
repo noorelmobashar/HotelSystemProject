@@ -41,6 +41,16 @@ class DatabaseSeeder extends Seeder
         ]);
         $manager->assignRole('manager');
 
+        $managerTwo = User::updateOrCreate([
+            'name' => 'Manager Two',
+            'email' => 'manager2@manager.com',
+        ], [
+            'name' => 'Manager Two',
+            'gender' => 'male',
+            'password' => bcrypt('123456'),
+        ]);
+        $managerTwo->assignRole('manager');
+
         $receptionist = User::updateOrCreate([
             'name' => 'Receptionist',
             'email' => 'receptionist@receptionist.com',

@@ -10,7 +10,7 @@ import {
 import RoleDashboardLayout from "@/Layouts/RoleDashboardLayout.vue";
 
 const props = defineProps({
-    floors: {
+    rooms: {
         type: Object,
         default: () => ({
             data: [],
@@ -35,19 +35,23 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    canCreate: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const rows = computed(() =>
-    Array.isArray(props.floors?.data) ? props.floors.data : [],
+    Array.isArray(props.rooms?.data) ? props.rooms.data : [],
 );
 
 const meta = computed(() => ({
-    currentPage: Number(props.floors?.current_page ?? 1),
-    lastPage: Number(props.floors?.last_page ?? 1),
-    perPage: Number(props.floors?.per_page ?? 10),
-    total: Number(props.floors?.total ?? 0),
-    from: Number(props.floors?.from ?? 0),
-    to: Number(props.floors?.to ?? 0),
+    currentPage: Number(props.rooms?.current_page ?? 1),
+    lastPage: Number(props.rooms?.last_page ?? 1),
+    perPage: Number(props.rooms?.per_page ?? 10),
+    total: Number(props.rooms?.total ?? 0),
+    from: Number(props.rooms?.from ?? 0),
+    to: Number(props.rooms?.to ?? 0),
 }));
 
 const search = ref(String(props.filters?.search ?? ""));
@@ -55,31 +59,40 @@ const perPage = ref(Number(props.filters?.per_page ?? meta.value.perPage));
 const sortBy = ref(String(props.filters?.sort_by ?? ""));
 const sortDir = ref(String(props.filters?.sort_dir ?? "asc"));
 const loading = ref(false);
-const deletingFloorId = ref(null);
+const deletingRoomId = ref(null);
 const deleteCandidate = ref(null);
 const deleteModalOpen = ref(false);
 const deleteMessage = ref("");
 const deleteMessageTone = ref("error");
 const isAdmin = computed(() => Boolean(props.isAdmin));
-const searchPlaceholder = computed(() =>
-    isAdmin.value
-        ? "Search by floor name, number, or manager"
-        : "Search by floor name or number",
-);
+const canCreate = computed(() => Boolean(props.canCreate));
 const hasManageableRows = computed(() =>
     rows.value.some((row) => Boolean(row.can_manage)),
+);
+const searchPlaceholder = computed(() =>
+    isAdmin.value
+        ? "Search by room number, floor, or manager"
+        : "Search by room number, capacity, or floor",
 );
 
 const columnHelper = createColumnHelper();
 
 const columns = computed(() => {
     const baseColumns = [
-        columnHelper.accessor("name", {
-            header: "Name",
-            cell: (info) => info.getValue() ?? "-",
-        }),
         columnHelper.accessor("number", {
             header: "Number",
+            cell: (info) => info.getValue() ?? "-",
+        }),
+        columnHelper.accessor("capacity", {
+            header: "Capacity",
+            cell: (info) => info.getValue() ?? "-",
+        }),
+        columnHelper.accessor("price", {
+            header: "Price",
+            cell: (info) => formatPrice(info.getValue()),
+        }),
+        columnHelper.accessor("floor_name", {
+            header: "Floor Name",
             cell: (info) => info.getValue() ?? "-",
         }),
     ];
@@ -93,7 +106,7 @@ const columns = computed(() => {
         );
     }
 
-    if (isAdmin.value || hasManageableRows.value) {
+    if (hasManageableRows.value) {
         baseColumns.push(
             columnHelper.display({
                 id: "actions",
@@ -131,7 +144,7 @@ const queryParams = (page) => ({
 const loadPage = (page) => {
     loading.value = true;
 
-    router.get(route("floors.index"), queryParams(page), {
+    router.get(route("rooms.index"), queryParams(page), {
         preserveState: true,
         preserveScroll: true,
         replace: true,
@@ -146,7 +159,7 @@ const isSortableColumn = (column) => {
         return isAdmin.value;
     }
 
-    return ["name", "number"].includes(column);
+    return ["number", "capacity", "price", "floor_name"].includes(column);
 };
 
 const sortIndicator = (column) => {
@@ -172,17 +185,24 @@ const toggleSort = (column) => {
     loadPage(1);
 };
 
-const openDeleteModal = (floor) => {
-    if (!floor?.id || !floor?.can_manage) {
+const formatPrice = (value) => {
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+    }).format(Number(value ?? 0));
+};
+
+const openDeleteModal = (room) => {
+    if (!room?.id || !room?.can_manage) {
         return;
     }
 
-    deleteCandidate.value = floor;
+    deleteCandidate.value = room;
     deleteModalOpen.value = true;
 };
 
 const closeDeleteModal = (force = false) => {
-    if (deletingFloorId.value && !force) {
+    if (deletingRoomId.value && !force) {
         return;
     }
 
@@ -202,31 +222,31 @@ const showDeleteMessage = (message, tone = "error") => {
     }, 3200);
 };
 
-const confirmDeleteFloor = () => {
-    const floor = deleteCandidate.value;
+const confirmDeleteRoom = () => {
+    const room = deleteCandidate.value;
 
-    if (!floor?.id || !floor?.can_manage) {
+    if (!room?.id || !room?.can_manage) {
         return;
     }
 
-    deletingFloorId.value = floor.id;
+    deletingRoomId.value = room.id;
 
-    router.delete(route("floors.destroy", floor.id), {
+    router.delete(route("rooms.destroy", room.id), {
         preserveState: true,
         preserveScroll: true,
         onSuccess: () => {
             closeDeleteModal(true);
-            showDeleteMessage("Floor deleted successfully.", "success");
+            showDeleteMessage("Room deleted successfully.", "success");
             loadPage(meta.value.currentPage);
         },
         onError: (errors) => {
             closeDeleteModal(true);
             showDeleteMessage(
-                errors.floor || "Unable to delete this floor at the moment.",
+                errors.room || "Unable to delete this room at the moment.",
             );
         },
         onFinish: () => {
-            deletingFloorId.value = null;
+            deletingRoomId.value = null;
         },
     });
 };
@@ -252,16 +272,16 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <Head title="Manage Floors" />
+    <Head title="Manage Rooms" />
 
     <RoleDashboardLayout>
         <section class="relative h-full overflow-y-auto">
             <div class="pointer-events-none absolute inset-0">
                 <div
-                    class="absolute -top-16 right-6 h-40 w-40 rounded-full bg-cyan-200/40 blur-3xl"
+                    class="absolute left-6 top-8 h-44 w-44 rounded-full bg-amber-200/40 blur-3xl"
                 />
                 <div
-                    class="absolute bottom-2 left-10 h-40 w-40 rounded-full bg-emerald-200/40 blur-3xl"
+                    class="absolute bottom-2 right-12 h-40 w-40 rounded-full bg-cyan-200/40 blur-3xl"
                 />
             </div>
 
@@ -286,13 +306,13 @@ onBeforeUnmount(() => {
                     </p>
 
                     <h3 class="mt-3 text-xl font-semibold text-slate-900">
-                        Delete this floor?
+                        Delete this room?
                     </h3>
 
                     <p class="mt-2 text-sm text-slate-500">
-                        You are about to delete
+                        You are about to delete room
                         <span class="font-semibold text-slate-700">
-                            {{ deleteCandidate?.name || "this floor" }}
+                            {{ deleteCandidate?.number || "this room" }}
                         </span>
                         . This action cannot be undone.
                     </p>
@@ -300,7 +320,7 @@ onBeforeUnmount(() => {
                     <div class="mt-6 flex items-center justify-end gap-2">
                         <button
                             type="button"
-                            :disabled="Boolean(deletingFloorId)"
+                            :disabled="Boolean(deletingRoomId)"
                             @click="closeDeleteModal"
                             class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -309,11 +329,11 @@ onBeforeUnmount(() => {
 
                         <button
                             type="button"
-                            :disabled="Boolean(deletingFloorId)"
-                            @click="confirmDeleteFloor"
+                            :disabled="Boolean(deletingRoomId)"
+                            @click="confirmDeleteRoom"
                             class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition-colors duration-200 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            Delete Floor
+                            Delete Room
                         </button>
                     </div>
                 </div>
@@ -324,20 +344,20 @@ onBeforeUnmount(() => {
                     class="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.8)] backdrop-blur-sm"
                 >
                     <p
-                        class="text-[11px] font-semibold uppercase tracking-[0.35em] text-cyan-600"
+                        class="text-[11px] font-semibold uppercase tracking-[0.35em] text-amber-600"
                     >
-                        Hotel Structure
+                        Room Operations
                     </p>
                     <div
                         class="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
                     >
                         <div>
                             <h1 class="text-3xl font-semibold text-slate-900">
-                                Floor Management
+                                Room Management
                             </h1>
                             <p class="mt-1 text-sm text-slate-500">
-                                Managers can manage only their floors. Admin can
-                                manage all floors.
+                                Managers can create and manage only the rooms
+                                they created. Admin can view all rooms.
                             </p>
                         </div>
 
@@ -348,12 +368,12 @@ onBeforeUnmount(() => {
                                 v-model="search"
                                 type="text"
                                 :placeholder="searchPlaceholder"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:w-64"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200/60 sm:w-64"
                             />
 
                             <select
                                 v-model.number="perPage"
-                                class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
+                                class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200/60"
                             >
                                 <option :value="5">5 / page</option>
                                 <option :value="10">10 / page</option>
@@ -361,10 +381,11 @@ onBeforeUnmount(() => {
                             </select>
 
                             <Link
-                                :href="route('floors.create')"
-                                class="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-semibold text-cyan-700 transition-colors duration-200 hover:bg-cyan-100"
+                                v-if="canCreate"
+                                :href="route('rooms.create')"
+                                class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 transition-colors duration-200 hover:bg-amber-100"
                             >
-                                Add Floor
+                                Add Room
                             </Link>
                         </div>
                     </div>
@@ -463,7 +484,7 @@ onBeforeUnmount(() => {
                                         "
                                         class="px-5 py-10 text-center text-sm text-slate-500"
                                     >
-                                        No floors returned from server.
+                                        No rooms returned from server.
                                     </td>
                                 </tr>
 
@@ -496,7 +517,7 @@ onBeforeUnmount(() => {
                                                     <Link
                                                         :href="
                                                             route(
-                                                                'floors.edit',
+                                                                'rooms.edit',
                                                                 cell.row
                                                                     .original
                                                                     .id,
@@ -509,11 +530,10 @@ onBeforeUnmount(() => {
                                                     <button
                                                         type="button"
                                                         :disabled="
-                                                            deletingFloorId ===
+                                                            deletingRoomId ===
                                                                 cell.row
                                                                     .original
-                                                                    .id ||
-                                                            loading
+                                                                    .id || loading
                                                         "
                                                         @click="
                                                             openDeleteModal(
@@ -548,7 +568,7 @@ onBeforeUnmount(() => {
                     >
                         <p class="text-sm text-slate-500">
                             Showing {{ meta.from }} to {{ meta.to }} of
-                            {{ meta.total }} floors.
+                            {{ meta.total }} rooms.
                         </p>
 
                         <div class="inline-flex items-center gap-2">

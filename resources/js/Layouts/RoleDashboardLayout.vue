@@ -57,7 +57,7 @@ const roleLayouts = {
                 label: "Manage Rooms",
                 subtitle: "Rates and capacity",
                 icon: "rooms",
-                routeName: null,
+                routeName: "rooms.index",
             },
             {
                 label: "Approved Clients",
@@ -116,7 +116,7 @@ const roleLayouts = {
                 label: "Manage Rooms",
                 subtitle: "Rates and capacity",
                 icon: "rooms",
-                routeName: null,
+                routeName: "rooms.index",
             },
             {
                 label: "Statistics",
@@ -243,6 +243,11 @@ const isItemActive = (item) => {
     if (item.routeName === "floors.index") {
         return route().current("floors.*");
     }
+
+    if (item.routeName === "rooms.index") {
+        return route().current("rooms.*");
+    }
+
     return route().current(item.routeName);
 };
 

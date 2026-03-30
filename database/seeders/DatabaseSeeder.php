@@ -73,6 +73,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             FloorSeeder::class,
+            RoomSeeder::class,
         ]);
 
     }

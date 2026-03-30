@@ -30,13 +30,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::resource('floors', FloorController::class)->except('show');
 
     Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
     Route::get('/reservations/create', [ReservationController::class, 'create'])->name('reservations.create');
     Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');
 
     Route::middleware('role:admin|manager')->group(function () {
+        Route::resource('floors', FloorController::class)->except('show');
         Route::get('/receptionists', [ReceptionistController::class, 'index'])->name('receptionists.index');
         Route::post('/receptionists', [ReceptionistController::class, 'store'])->name('receptionists.store');
         Route::put('/receptionists/{receptionist}', [ReceptionistController::class, 'update'])->name('receptionists.update');

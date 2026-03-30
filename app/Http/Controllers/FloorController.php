@@ -17,8 +17,6 @@ class FloorController extends Controller
 {
     public function index(FloorIndexRequest $request): Response
     {
-        $this->ensureAdminOrManager($request);
-
         $user = $request->user();
         $isAdmin = $user->hasRole('admin');
 
@@ -76,15 +74,11 @@ class FloorController extends Controller
 
     public function create(Request $request): Response
     {
-        $this->ensureAdminOrManager($request);
-
         return Inertia::render('Floors/Create');
     }
 
     public function store(FloorStoreRequest $request): RedirectResponse
     {
-        $this->ensureAdminOrManager($request);
-
         $validated = $request->validated();
 
         $generatedNumber = $this->generateFloorNumber();
@@ -135,20 +129,13 @@ class FloorController extends Controller
         return redirect()->back();
     }
 
-    private function ensureAdminOrManager(Request $request): void
-    {
-        $user = $request->user();
-
-        if (! $user || ! $user->hasAnyRole(['admin', 'manager'])) {
-            abort(403);
-        }
-    }
-
     private function ensureCanManageFloor(Request $request, Floor $floor): void
     {
-        $this->ensureAdminOrManager($request);
-
         $user = $request->user();
+
+        if (! $user) {
+            abort(403);
+        }
 
         if ($user->hasRole('admin')) {
             return;

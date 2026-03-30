@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import RoleDashboardLayout from '@/Layouts/RoleDashboardLayout.vue';
 import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
@@ -18,39 +18,31 @@ defineProps({
 <template>
     <Head title="Profile" />
 
-    <AuthenticatedLayout>
-        <template #header>
-            <h2
-                class="text-xl font-semibold leading-tight text-gray-800"
-            >
-                Profile
-            </h2>
-        </template>
+    <RoleDashboardLayout>
+        <div class="h-full overflow-y-auto bg-gradient-to-br from-slate-100 via-slate-100 to-slate-200/60">
+            <div class="mx-auto max-w-6xl space-y-6 px-6 py-8 lg:px-10">
+                <header class="space-y-1">
+                    <h1 class="text-2xl font-semibold text-slate-900">Profile Workspace</h1>
+                    <p class="text-sm text-slate-500">
+                        Manage your account identity, password, and security controls.
+                    </p>
+                </header>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8"
-                >
+                <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.95)]">
                     <UpdateProfileInformationForm
                         :must-verify-email="mustVerifyEmail"
                         :status="status"
-                        class="max-w-xl"
                     />
                 </div>
 
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8"
-                >
-                    <UpdatePasswordForm class="max-w-xl" />
+                <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.95)]">
+                    <UpdatePasswordForm />
                 </div>
 
-                <div
-                    class="bg-white p-4 shadow sm:rounded-lg sm:p-8"
-                >
-                    <DeleteUserForm class="max-w-xl" />
+                <div class="rounded-3xl border border-rose-200 bg-white p-6 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.95)]">
+                    <DeleteUserForm />
                 </div>
             </div>
         </div>
-    </AuthenticatedLayout>
+    </RoleDashboardLayout>
 </template>

@@ -3,8 +3,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite"
+        "build": "vite build --configLoader native",
+        "dev": "vite --configLoader native"
     },
     "devDependencies": {
         "@inertiajs/vue3": "^2.0.0",
@@ -19,5 +19,8 @@
         "tailwindcss": "^3.2.1",
         "vite": "^8.0.0",
         "vue": "^3.4.0"
+    },
+    "dependencies": {
+        "@tanstack/vue-table": "^8.21.3"
     }
 }

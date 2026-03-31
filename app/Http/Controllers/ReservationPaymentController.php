@@ -34,7 +34,7 @@ class ReservationPaymentController extends Controller
         $checkInDate = $validated['check_in_date'];
         $checkOutDate = $validated['check_out_date'];
         $nights = Carbon::parse($checkInDate)->diffInDays(Carbon::parse($checkOutDate));
-        $totalPrice = (int) ($room->price * $nights);
+        $totalPriceCents = (int) ($room->price * $nights);
 
         if ($this->hasRoomConflict($room, $checkInDate, $checkOutDate)) {
             return redirect()
@@ -88,7 +88,7 @@ class ReservationPaymentController extends Controller
                     'check_out_date' => $checkOutDate,
                     'nights' => (string) $nights,
                     'currency' => $currency,
-                    'expected_amount_cents' => (string) ((int) round($totalPrice * 100)),
+                    'expected_amount_cents' => (string) $totalPriceCents,
                 ],
                 'line_items' => [[
                     'quantity' => 1,
@@ -97,7 +97,7 @@ class ReservationPaymentController extends Controller
                         'product_data' => [
                             'name' => 'Room ' . $room->number . ' Reservation (' . $nights . ' nights)',
                         ],
-                        'unit_amount' => (int) round($totalPrice * 100),
+                        'unit_amount' => $totalPriceCents,
                     ],
                 ]],
             ]);
@@ -216,7 +216,7 @@ class ReservationPaymentController extends Controller
                 ->with('error', 'The selected room no longer exists.');
         }
 
-        $paidPrice = (int) round($amountTotalCents / 100);
+        $paidPriceCents = $amountTotalCents;
 
         if ($accompanyNumber > $room->capacity) {
             return redirect()
@@ -310,7 +310,7 @@ class ReservationPaymentController extends Controller
             'check_in_date' => $checkInDate,
             'check_out_date' => $checkOutDate,
             'accompany_number' => $accompanyNumber,
-            'paid_price' => $paidPrice,
+            'paid_price' => $paidPriceCents,
             'is_active' => true,
         ]);
 

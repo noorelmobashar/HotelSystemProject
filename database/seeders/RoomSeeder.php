@@ -14,64 +14,66 @@ class RoomSeeder extends Seeder
      */
     public function run(): void
     {
-        $fallbackCreatorId = User::role('manager')->value('id')
-            ?? User::role('admin')->value('id');
+        $managerTwo = User::where('email', 'manager2@manager.com')->first();
 
-        if (! $fallbackCreatorId) {
-            return;
-        }
-
-        $roomsByFloor = [
-            '1000' => [
-                ['number' => '101', 'capacity' => 2, 'price' => 120],
-                ['number' => '102', 'capacity' => 3, 'price' => 150],
-                ['number' => '103', 'capacity' => 4, 'price' => 180],
-            ],
-            '1001' => [
-                ['number' => '201', 'capacity' => 2, 'price' => 130],
-                ['number' => '202', 'capacity' => 3, 'price' => 160],
-                ['number' => '203', 'capacity' => 4, 'price' => 190],
-            ],
-            '1002' => [
-                ['number' => '301', 'capacity' => 2, 'price' => 140],
-                ['number' => '302', 'capacity' => 3, 'price' => 170],
-                ['number' => '303', 'capacity' => 4, 'price' => 200],
-            ],
-            '1003' => [
-                ['number' => '401', 'capacity' => 2, 'price' => 150],
-                ['number' => '402', 'capacity' => 3, 'price' => 180],
-                ['number' => '403', 'capacity' => 4, 'price' => 210],
-            ],
-            '2000' => [
-                ['number' => '501', 'capacity' => 2, 'price' => 160],
-                ['number' => '502', 'capacity' => 3, 'price' => 190],
-            ],
-            '2001' => [
-                ['number' => '601', 'capacity' => 2, 'price' => 170],
-                ['number' => '602', 'capacity' => 3, 'price' => 200],
-            ],
+        $primaryRooms = [
+            ['number' => '1101', 'capacity' => 2, 'price' => 12900, 'floor_number' => '1000'],
+            ['number' => '1102', 'capacity' => 3, 'price' => 15900, 'floor_number' => '1000'],
+            ['number' => '1201', 'capacity' => 2, 'price' => 14900, 'floor_number' => '1001'],
+            ['number' => '1202', 'capacity' => 4, 'price' => 19900, 'floor_number' => '1001'],
+            ['number' => '1301', 'capacity' => 1, 'price' => 10900, 'floor_number' => '1002'],
+            ['number' => '1401', 'capacity' => 2, 'price' => 16900, 'floor_number' => '1003'],
         ];
 
-        foreach ($roomsByFloor as $floorNumber => $rooms) {
-            $floor = Floor::query()->where('number', $floorNumber)->first();
+        foreach ($primaryRooms as $room) {
+            $floor = Floor::query()->where('number', $room['floor_number'])->first();
 
             if (! $floor) {
                 continue;
             }
 
-            $createdBy = $floor->created_by ?: $fallbackCreatorId;
+            Room::updateOrCreate(
+                ['number' => $room['number']],
+                [
+                    'number' => $room['number'],
+                    'capacity' => $room['capacity'],
+                    'price' => $room['price'],
+                    'floor_id' => $floor->id,
+                    'created_by' => $floor->created_by,
+                ]
+            );
+        }
 
-            foreach ($rooms as $room) {
-                Room::updateOrCreate(
-                    ['number' => $room['number']],
-                    [
-                        'capacity' => $room['capacity'],
-                        'price' => $room['price'],
-                        'floor_id' => $floor->id,
-                        'created_by' => $createdBy,
-                    ]
-                );
+        if (! $managerTwo) {
+            return;
+        }
+
+        $managerTwoRooms = [
+            ['number' => '2101', 'capacity' => 2, 'price' => 18900, 'floor_number' => '2000'],
+            ['number' => '2102', 'capacity' => 3, 'price' => 21900, 'floor_number' => '2000'],
+            ['number' => '2201', 'capacity' => 4, 'price' => 24900, 'floor_number' => '2001'],
+        ];
+
+        foreach ($managerTwoRooms as $room) {
+            $floor = Floor::query()
+                ->where('number', $room['floor_number'])
+                ->where('created_by', $managerTwo->id)
+                ->first();
+
+            if (! $floor) {
+                continue;
             }
+
+            Room::updateOrCreate(
+                ['number' => $room['number']],
+                [
+                    'number' => $room['number'],
+                    'capacity' => $room['capacity'],
+                    'price' => $room['price'],
+                    'floor_id' => $floor->id,
+                    'created_by' => $managerTwo->id,
+                ]
+            );
         }
     }
 }

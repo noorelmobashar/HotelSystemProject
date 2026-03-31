@@ -7,6 +7,7 @@ use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\ReceptionistController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\ReservationPaymentController;
+use App\Http\Controllers\RoomController;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +55,7 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:admin|manager')->group(function () {
         Route::resource('floors', FloorController::class)->except('show');
+        Route::resource('rooms', RoomController::class)->except('show');
         Route::get('/receptionists', [ReceptionistController::class, 'index'])->name('receptionists.index');
         Route::post('/receptionists', [ReceptionistController::class, 'store'])->name('receptionists.store');
         Route::put('/receptionists/{receptionist}', [ReceptionistController::class, 'update'])->name('receptionists.update');

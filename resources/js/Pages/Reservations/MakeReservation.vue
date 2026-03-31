@@ -106,7 +106,7 @@ const formatPrice = (value) => {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
-    }).format(value ?? 0);
+    }).format((Number(value ?? 0)) / 100);
 };
 </script>
 

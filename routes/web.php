@@ -66,9 +66,14 @@ Route::middleware('auth')->group(function () {
         Route::delete('/receptionists/{receptionist}', [ReceptionistController::class, 'destroy'])->name('receptionists.destroy');
     });
 
-    Route::middleware('role:manager|receptionist')->group(function () {
+    Route::middleware('role:admin|manager|receptionist')->group(function () {
         Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
         Route::put('/clients/{client}/approve', [ClientController::class, 'approve'])->name('clients.approve');
+    });
+
+    Route::middleware('role:receptionist')->group(function () {
+        Route::get('/my-approved-clients', [ClientController::class, 'myApprovedClients'])
+            ->name('clients.my-approved');
     });
 });
 

@@ -45,7 +45,7 @@ const roleLayouts = {
                 label: "Manage Clients",
                 subtitle: "Guest approvals",
                 icon: "clients",
-                routeName: null,
+                routeName: "clients.index",
             },
             {
                 label: "Manage Floors",
@@ -104,7 +104,7 @@ const roleLayouts = {
                 label: "Manage Clients",
                 subtitle: "Guest records",
                 icon: "clients",
-                routeName: null,
+                routeName: "clients.index",
             },
             {
                 label: "Manage Floors",
@@ -145,7 +145,7 @@ const roleLayouts = {
                 label: "Manage Clients",
                 subtitle: "Pending approvals",
                 icon: "clients",
-                routeName: null,
+                routeName: "clients.index",
             },
             {
                 label: "My Approved Clients",

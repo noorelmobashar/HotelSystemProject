@@ -3,6 +3,7 @@
 use App\Http\Controllers\FloorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\ReceptionistController;
 use App\Http\Controllers\ReservationController;
@@ -60,6 +61,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/receptionists', [ReceptionistController::class, 'store'])->name('receptionists.store');
         Route::put('/receptionists/{receptionist}', [ReceptionistController::class, 'update'])->name('receptionists.update');
         Route::delete('/receptionists/{receptionist}', [ReceptionistController::class, 'destroy'])->name('receptionists.destroy');
+
+        Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
+        Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+        Route::delete('/clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+    });
+
+    Route::middleware('role:admin|manager|receptionist')->group(function () {
+        Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::patch('/clients/{client}/approve', [ClientController::class, 'approve'])->name('clients.approve');
     });
 });
 

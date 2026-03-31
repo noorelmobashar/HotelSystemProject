@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\FloorController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManagerController;
@@ -40,6 +41,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/reservations/rooms/{roomId}', 'showRoomReservation')->name('reservations.rooms.show');
     });
 
+    Route::middleware('role:admin|manager|receptionist')->group(function () {
+        Route::get('/clients-reservations', [ReservationController::class, 'clientsReservations'])
+            ->name('reservations.clients.index');
+    });
+
     Route::controller(ReservationPaymentController::class)->group(function () {
         Route::post('/reservations/rooms/{roomId}/checkout', 'checkout')->name('reservations.rooms.checkout');
         Route::get('/reservations/checkout/success', 'checkoutSuccess')->name('reservations.checkout.success');
@@ -58,6 +64,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/receptionists', [ReceptionistController::class, 'store'])->name('receptionists.store');
         Route::put('/receptionists/{receptionist}', [ReceptionistController::class, 'update'])->name('receptionists.update');
         Route::delete('/receptionists/{receptionist}', [ReceptionistController::class, 'destroy'])->name('receptionists.destroy');
+    });
+
+    Route::middleware('role:manager|receptionist')->group(function () {
+        Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::put('/clients/{client}/approve', [ClientController::class, 'approve'])->name('clients.approve');
     });
 });
 

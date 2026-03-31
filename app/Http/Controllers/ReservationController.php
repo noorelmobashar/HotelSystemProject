@@ -16,6 +16,8 @@ class ReservationController extends Controller
 {
     public function create(Request $request): Response
     {
+        $this->ensureApprovedClient($request);
+
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
@@ -55,6 +57,8 @@ class ReservationController extends Controller
 
     public function showRoomReservation(Request $request, int $roomId): Response|RedirectResponse
     {
+        $this->ensureApprovedClient($request);
+
         $validated = $request->validate([
             'check_in_date' => ['nullable', 'date', 'after_or_equal:today'],
             'check_out_date' => ['nullable', 'date', 'after:check_in_date'],
@@ -98,8 +102,12 @@ class ReservationController extends Controller
         ]);
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
+        if ($request->user()?->hasAnyRole(['admin', 'manager', 'receptionist'])) {
+            return redirect()->route('reservations.clients.index');
+        }
+
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
@@ -136,6 +144,50 @@ class ReservationController extends Controller
         ]);
     }
 
+    public function clientsReservations(Request $request): Response
+    {
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
+        ]);
+
+        $perPage = (int) ($validated['per_page'] ?? 10);
+        $user = $request->user();
+
+        $query = Reservation::query()
+            ->with(['client:id,name,approved_by', 'room:id,number,created_by'])
+            ->latest();
+
+        if ($user->hasRole('manager')) {
+            $query->whereHas('room', function (Builder $builder) use ($user) {
+                $builder->where('created_by', $user->id);
+            });
+        } elseif ($user->hasRole('receptionist')) {
+            $query->whereHas('client', function (Builder $builder) use ($user) {
+                $builder->where('approved_by', $user->id);
+            });
+        }
+
+        $reservations = $query
+            ->paginate($perPage)
+            ->through(fn(Reservation $reservation) => [
+                'id' => $reservation->id,
+                'client_name' => $reservation->client?->name ?? 'N/A',
+                'room_number' => $reservation->room?->number ?? 'N/A',
+                'accompany_number' => $reservation->accompany_number,
+                'paid_price' => $reservation->paid_price,
+                'created_at' => $reservation->created_at?->format('Y-m-d H:i'),
+            ])
+            ->withQueryString();
+
+        return Inertia::render('Reservations/ClientsReservations', [
+            'reservations' => $reservations,
+            'filters' => [
+                'per_page' => $perPage,
+            ],
+        ]);
+    }
+
     private function hasRoomConflict(Room $room, string $checkInDate, string $checkOutDate): bool
     {
         $query = $room->reservations();
@@ -158,5 +210,16 @@ class ReservationController extends Controller
                     ->orWhereNull('check_in_date')
                     ->orWhereNull('check_out_date');
             });
+    }
+
+    private function ensureApprovedClient(Request $request): void
+    {
+        $user = $request->user();
+
+        if (!$user?->hasRole('client')) {
+            return;
+        }
+
+        abort_unless($user->approved_at !== null, 403, 'Your client account is pending approval.');
     }
 }

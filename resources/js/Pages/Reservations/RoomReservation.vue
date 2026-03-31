@@ -61,7 +61,7 @@ const nights = computed(() => {
 });
 
 const totalPrice = computed(() => {
-    return nights.value > 0 ? (props.room.price ?? 0) * nights.value : 0;
+    return nights.value > 0 ? Number(props.room.price ?? 0) * nights.value : 0;
 });
 
 const checkOutMin = computed(() => {
@@ -91,7 +91,7 @@ const formatPrice = (value) => {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
-    }).format(value ?? 0);
+    }).format((Number(value ?? 0)) / 100);
 };
 </script>
 

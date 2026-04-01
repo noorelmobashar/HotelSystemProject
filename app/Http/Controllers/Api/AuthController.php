@@ -42,7 +42,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function me(Request $request): JsonResponse
+    public function user(Request $request): JsonResponse
     {
         $user = $request->user();
 

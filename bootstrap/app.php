@@ -1,5 +1,8 @@
 <?php
 
+use App\Console\Commands\ArchiveOldReservations;
+use App\Console\Commands\LoginReminder;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -24,6 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         //
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command(ArchiveOldReservations::class)->daily();
+        $schedule->command(LoginReminder::class)->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

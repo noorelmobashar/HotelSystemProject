@@ -21,8 +21,12 @@ class LoginReminder extends Command
             ->whereNotNull('approved_at')
             ->where(function ($query) use ($threshold) {
                 $query
-                    ->whereNull('last_login_at')
-                    ->orWhere('last_login_at', '<=', $threshold);
+                    ->where('last_login_at', '<=', $threshold)
+                    ->orWhere(function ($neverLoggedInQuery) use ($threshold) {
+                        $neverLoggedInQuery
+                            ->whereNull('last_login_at')
+                            ->where('approved_at', '<=', $threshold);
+                    });
             })
             ->get();
 

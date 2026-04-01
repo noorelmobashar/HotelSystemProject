@@ -44,6 +44,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin|manager|receptionist')->group(function () {
         Route::get('/clients-reservations', [ReservationController::class, 'clientsReservations'])
             ->name('reservations.clients.index');
+        Route::patch('/clients-reservations/{reservation}/status', [ReservationController::class, 'updateClientReservationStatus'])
+            ->name('reservations.clients.status');
     });
 
     Route::controller(ReservationPaymentController::class)->group(function () {

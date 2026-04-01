@@ -5,7 +5,7 @@ import {
     getCoreRowModel,
     useVueTable,
 } from '@tanstack/vue-table';
-import { computed } from 'vue';
+import { computed, reactive } from 'vue';
 import RoleDashboardLayout from '@/Layouts/RoleDashboardLayout.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 
@@ -24,6 +24,8 @@ const props = defineProps({
         type: Object,
         default: () => ({
             per_page: 10,
+            search: '',
+            status: 'all',
         }),
     },
 });
@@ -35,6 +37,11 @@ const currentPage = computed(() => props.reservations?.current_page ?? 1);
 const lastPage = computed(() => props.reservations?.last_page ?? 1);
 const totalReservations = computed(() => props.reservations?.total ?? 0);
 const perPage = computed(() => Number(props.reservations?.per_page ?? props.filters?.per_page ?? 10));
+const filterState = reactive({
+    search: props.filters?.search ?? '',
+    status: props.filters?.status ?? 'all',
+    per_page: Number(props.filters?.per_page ?? 10),
+});
 
 const paginationState = computed(() => ({
     pageIndex: Math.max(currentPage.value - 1, 0),
@@ -51,12 +58,28 @@ const formatPrice = (value) => {
 };
 
 const columns = [
+    columnHelper.accessor('id', {
+        header: 'ID',
+        cell: (info) => `#${info.getValue()}`,
+    }),
     columnHelper.accessor('client_name', {
         header: 'Client',
         cell: (info) => info.getValue() ?? 'N/A',
     }),
+    columnHelper.accessor('client_email', {
+        header: 'Email',
+        cell: (info) => info.getValue() ?? 'N/A',
+    }),
     columnHelper.accessor('room_number', {
         header: 'Room',
+        cell: (info) => info.getValue() ?? 'N/A',
+    }),
+    columnHelper.accessor('check_in_date', {
+        header: 'Check-In',
+        cell: (info) => info.getValue() ?? 'N/A',
+    }),
+    columnHelper.accessor('check_out_date', {
+        header: 'Check-Out',
         cell: (info) => info.getValue() ?? 'N/A',
     }),
     columnHelper.accessor('accompany_number', {
@@ -66,6 +89,14 @@ const columns = [
     columnHelper.accessor('paid_price', {
         header: 'Paid Price',
         cell: (info) => formatPrice(info.getValue()),
+    }),
+    columnHelper.display({
+        id: 'status',
+        header: 'Status',
+    }),
+    columnHelper.display({
+        id: 'actions',
+        header: 'Actions',
     }),
     columnHelper.accessor('created_at', {
         header: 'Reserved At',
@@ -96,6 +127,8 @@ const loadPage = (nextPage, nextPerPage = perPage.value) => {
         {
             page: nextPage,
             per_page: nextPerPage,
+            search: filterState.search,
+            status: filterState.status,
         },
         {
             preserveState: true,
@@ -106,7 +139,32 @@ const loadPage = (nextPage, nextPerPage = perPage.value) => {
 };
 
 const changePerPage = (event) => {
-    loadPage(1, Number(event.target.value));
+    filterState.per_page = Number(event.target.value);
+    loadPage(1, filterState.per_page);
+};
+
+const applyFilters = () => {
+    loadPage(1, filterState.per_page);
+};
+
+const resetFilters = () => {
+    filterState.search = '';
+    filterState.status = 'all';
+    filterState.per_page = 10;
+    loadPage(1, filterState.per_page);
+};
+
+const toggleStatus = (reservation) => {
+    router.patch(
+        route('reservations.clients.status', reservation.id),
+        {
+            is_active: !reservation.is_active,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+        },
+    );
 };
 </script>
 
@@ -121,6 +179,45 @@ const changePerPage = (event) => {
                     <p class="mt-1 text-sm text-slate-500">
                         Global reservations view for receptionists, managers, and admins.
                     </p>
+                </div>
+
+                <div class="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-4">
+                    <div class="md:col-span-2">
+                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Search</label>
+                        <input
+                            v-model="filterState.search"
+                            type="text"
+                            class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                            placeholder="Reservation ID, client name/email, room number"
+                        >
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</label>
+                        <select
+                            v-model="filterState.status"
+                            class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                        >
+                            <option value="all">All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <button
+                            type="button"
+                            class="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                            @click="applyFilters"
+                        >
+                            Apply
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                            @click="resetFilters"
+                        >
+                            Reset
+                        </button>
+                    </div>
                 </div>
 
                 <div
@@ -159,7 +256,23 @@ const changePerPage = (event) => {
                                     :key="cell.id"
                                     class="px-5 py-4 text-sm text-slate-600"
                                 >
+                                    <span
+                                        v-if="cell.column.id === 'status'"
+                                        class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                                        :class="row.original.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700'"
+                                    >
+                                        {{ row.original.is_active ? 'Active' : 'Inactive' }}
+                                    </span>
+                                    <button
+                                        v-else-if="cell.column.id === 'actions'"
+                                        type="button"
+                                        class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                        @click="toggleStatus(row.original)"
+                                    >
+                                        {{ row.original.is_active ? 'Mark Inactive' : 'Mark Active' }}
+                                    </button>
                                     <FlexRender
+                                        v-else
                                         :render="cell.column.columnDef.cell"
                                         :props="cell.getContext()"
                                     />
@@ -168,7 +281,7 @@ const changePerPage = (event) => {
 
                             <tr v-if="table.getRowModel().rows.length === 0">
                                 <td
-                                    colspan="5"
+                                    colspan="11"
                                     class="px-5 py-8 text-center text-sm text-slate-500"
                                 >
                                     No reservations found.

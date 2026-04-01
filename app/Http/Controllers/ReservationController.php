@@ -149,33 +149,52 @@ class ReservationController extends Controller
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'in:all,active,inactive'],
         ]);
 
         $perPage = (int) ($validated['per_page'] ?? 10);
-        $user = $request->user();
+        $search = trim((string) ($validated['search'] ?? ''));
+        $status = (string) ($validated['status'] ?? 'all');
 
         $query = Reservation::query()
-            ->with(['client:id,name,approved_by', 'room:id,number,created_by'])
+            ->with(['client:id,name,email,approved_by', 'room:id,number,created_by'])
             ->latest();
 
-        if ($user->hasRole('manager')) {
-            $query->whereHas('room', function (Builder $builder) use ($user) {
-                $builder->where('created_by', $user->id);
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search) {
+                $builder
+                    ->where('id', $search)
+                    ->orWhereHas('client', function (Builder $clientBuilder) use ($search) {
+                        $clientBuilder
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('room', function (Builder $roomBuilder) use ($search) {
+                        $roomBuilder->where('number', 'like', "%{$search}%");
+                    });
             });
-        } elseif ($user->hasRole('receptionist')) {
-            $query->whereHas('client', function (Builder $builder) use ($user) {
-                $builder->where('approved_by', $user->id);
-            });
+        }
+
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
         }
 
         $reservations = $query
             ->paginate($perPage)
             ->through(fn(Reservation $reservation) => [
                 'id' => $reservation->id,
+                'client_id' => $reservation->client_id,
                 'client_name' => $reservation->client?->name ?? 'N/A',
+                'client_email' => $reservation->client?->email ?? 'N/A',
                 'room_number' => $reservation->room?->number ?? 'N/A',
+                'check_in_date' => $reservation->check_in_date?->format('Y-m-d'),
+                'check_out_date' => $reservation->check_out_date?->format('Y-m-d'),
                 'accompany_number' => $reservation->accompany_number,
                 'paid_price' => $reservation->paid_price,
+                'is_active' => (bool) $reservation->is_active,
                 'created_at' => $reservation->created_at?->format('Y-m-d H:i'),
             ])
             ->withQueryString();
@@ -184,8 +203,24 @@ class ReservationController extends Controller
             'reservations' => $reservations,
             'filters' => [
                 'per_page' => $perPage,
+                'search' => $search,
+                'status' => $status,
             ],
         ]);
+    }
+
+    public function updateClientReservationStatus(Request $request, Reservation $reservation): RedirectResponse
+    {
+        abort_unless($request->user()?->hasAnyRole(['admin', 'manager', 'receptionist']), 403);
+
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $reservation->is_active = (bool) $validated['is_active'];
+        $reservation->save();
+
+        return back()->with('success', 'Reservation status updated successfully.');
     }
 
     private function hasRoomConflict(Room $room, string $checkInDate, string $checkOutDate): bool

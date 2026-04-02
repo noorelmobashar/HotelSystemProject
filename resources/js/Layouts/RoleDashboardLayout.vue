@@ -69,7 +69,7 @@ const roleLayouts = {
                 label: "Client Reservations",
                 subtitle: "Paid stays",
                 icon: "reservations",
-                routeName: null,
+                routeName: "reservations.clients.index",
             },
             {
                 label: "Statistics",
@@ -113,6 +113,12 @@ const roleLayouts = {
                 routeName: "floors.index",
             },
             {
+                label: "Clients Reservations",
+                subtitle: "Paid stays",
+                icon: "reservations",
+                routeName: "reservations.clients.index",
+            },
+            {
                 label: "Manage Rooms",
                 subtitle: "Rates and capacity",
                 icon: "rooms",
@@ -151,13 +157,13 @@ const roleLayouts = {
                 label: "My Approved Clients",
                 subtitle: "Approved guests",
                 icon: "approved",
-                routeName: null,
+                routeName: "clients.my-approved",
             },
             {
                 label: "Clients Reservations",
                 subtitle: "Paid stays",
                 icon: "reservations",
-                routeName: "reservations.index",
+                routeName: "reservations.clients.index",
             },
         ],
     },

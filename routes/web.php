@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\FloorController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\ReceptionistController;
 use App\Http\Controllers\ReservationController;
@@ -42,6 +42,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/reservations/rooms/{roomId}', 'showRoomReservation')->name('reservations.rooms.show');
     });
 
+    Route::middleware('role:admin|manager|receptionist')->group(function () {
+        Route::get('/clients-reservations', [ReservationController::class, 'clientsReservations'])
+            ->name('reservations.clients.index');
+        Route::patch('/clients-reservations/{reservation}/status', [ReservationController::class, 'updateClientReservationStatus'])
+            ->name('reservations.clients.status');
+    });
+
     Route::controller(ReservationPaymentController::class)->group(function () {
         Route::post('/reservations/rooms/{roomId}/checkout', 'checkout')->name('reservations.rooms.checkout');
         Route::get('/reservations/checkout/success', 'checkoutSuccess')->name('reservations.checkout.success');
@@ -69,7 +76,12 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:admin|manager|receptionist')->group(function () {
         Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
-        Route::patch('/clients/{client}/approve', [ClientController::class, 'approve'])->name('clients.approve');
+        Route::match(['patch', 'put'], '/clients/{client}/approve', [ClientController::class, 'approve'])->name('clients.approve');
+    });
+
+    Route::middleware('role:receptionist')->group(function () {
+        Route::get('/my-approved-clients', [ClientController::class, 'myApprovedClients'])
+            ->name('clients.my-approved');
     });
 });
 

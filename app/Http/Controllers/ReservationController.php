@@ -16,6 +16,8 @@ class ReservationController extends Controller
 {
     public function create(Request $request): Response
     {
+        $this->ensureApprovedClient($request);
+
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
@@ -55,6 +57,8 @@ class ReservationController extends Controller
 
     public function showRoomReservation(Request $request, int $roomId): Response|RedirectResponse
     {
+        $this->ensureApprovedClient($request);
+
         $validated = $request->validate([
             'check_in_date' => ['nullable', 'date', 'after_or_equal:today'],
             'check_out_date' => ['nullable', 'date', 'after:check_in_date'],
@@ -98,8 +102,12 @@ class ReservationController extends Controller
         ]);
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
+        if ($request->user()?->hasAnyRole(['admin', 'manager', 'receptionist'])) {
+            return redirect()->route('reservations.clients.index');
+        }
+
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
@@ -136,6 +144,85 @@ class ReservationController extends Controller
         ]);
     }
 
+    public function clientsReservations(Request $request): Response
+    {
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'in:all,active,inactive'],
+        ]);
+
+        $perPage = (int) ($validated['per_page'] ?? 10);
+        $search = trim((string) ($validated['search'] ?? ''));
+        $status = (string) ($validated['status'] ?? 'all');
+
+        $query = Reservation::query()
+            ->with(['client:id,name,email,approved_by', 'room:id,number,created_by'])
+            ->latest();
+
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search) {
+                $builder
+                    ->where('id', $search)
+                    ->orWhereHas('client', function (Builder $clientBuilder) use ($search) {
+                        $clientBuilder
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('room', function (Builder $roomBuilder) use ($search) {
+                        $roomBuilder->where('number', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        $reservations = $query
+            ->paginate($perPage)
+            ->through(fn(Reservation $reservation) => [
+                'id' => $reservation->id,
+                'client_id' => $reservation->client_id,
+                'client_name' => $reservation->client?->name ?? 'N/A',
+                'client_email' => $reservation->client?->email ?? 'N/A',
+                'room_number' => $reservation->room?->number ?? 'N/A',
+                'check_in_date' => $reservation->check_in_date?->format('Y-m-d'),
+                'check_out_date' => $reservation->check_out_date?->format('Y-m-d'),
+                'accompany_number' => $reservation->accompany_number,
+                'paid_price' => $reservation->paid_price,
+                'is_active' => (bool) $reservation->is_active,
+                'created_at' => $reservation->created_at?->format('Y-m-d H:i'),
+            ])
+            ->withQueryString();
+
+        return Inertia::render('Reservations/ClientsReservations', [
+            'reservations' => $reservations,
+            'filters' => [
+                'per_page' => $perPage,
+                'search' => $search,
+                'status' => $status,
+            ],
+        ]);
+    }
+
+    public function updateClientReservationStatus(Request $request, Reservation $reservation): RedirectResponse
+    {
+        abort_unless($request->user()?->hasAnyRole(['admin', 'manager', 'receptionist']), 403);
+
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $reservation->is_active = (bool) $validated['is_active'];
+        $reservation->save();
+
+        return back()->with('success', 'Reservation status updated successfully.');
+    }
+
     private function hasRoomConflict(Room $room, string $checkInDate, string $checkOutDate): bool
     {
         $query = $room->reservations();
@@ -158,5 +245,16 @@ class ReservationController extends Controller
                     ->orWhereNull('check_in_date')
                     ->orWhereNull('check_out_date');
             });
+    }
+
+    private function ensureApprovedClient(Request $request): void
+    {
+        $user = $request->user();
+
+        if (!$user?->hasRole('client')) {
+            return;
+        }
+
+        abort_unless($user->approved_at !== null, 403, 'Your client account is pending approval.');
     }
 }

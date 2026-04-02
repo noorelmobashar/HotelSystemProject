@@ -7,9 +7,17 @@ import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
+const props = defineProps({
+    countries: {
+        type: Array,
+        default: () => [],
+    },
+});
+
 const form = useForm({
     name: '',
     email: '',
+    country: '',
     avatar_image: null,
     password: '',
     password_confirmation: '',
@@ -95,6 +103,28 @@ const submit = () => {
                 />
 
                 <InputError class="mt-2" :message="form.errors.email" />
+            </div>
+
+            <div>
+                <InputLabel for="country" value="Country" />
+
+                <select
+                    id="country"
+                    v-model="form.country"
+                    required
+                    class="mt-2 block w-full rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 focus:border-emerald-500 focus:bg-white focus:ring-emerald-500"
+                >
+                    <option disabled value="">Select your country</option>
+                    <option
+                        v-for="country in props.countries"
+                        :key="country"
+                        :value="country"
+                    >
+                        {{ country }}
+                    </option>
+                </select>
+
+                <InputError class="mt-2" :message="form.errors.country" />
             </div>
 
             <div>

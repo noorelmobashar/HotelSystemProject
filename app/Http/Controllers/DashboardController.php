@@ -62,6 +62,7 @@ class DashboardController extends Controller
             'actions' => [
                 ['label' => 'Manage Managers', 'href' => route('managers.index'), 'style' => 'primary'],
                 ['label' => 'Review Receptionists', 'href' => route('receptionists.index'), 'style' => 'secondary'],
+                ['label' => 'Clients Reservations', 'href' => route('reservations.clients.index'), 'style' => 'secondary'],
             ],
             'panels' => [
                 [
@@ -113,7 +114,7 @@ class DashboardController extends Controller
             ],
             'actions' => [
                 ['label' => 'Manage Receptionists', 'href' => route('receptionists.index'), 'style' => 'primary'],
-                ['label' => 'Open Profile', 'href' => route('profile.edit'), 'style' => 'secondary'],
+                ['label' => 'Clients Reservations', 'href' => route('reservations.clients.index'), 'style' => 'secondary'],
             ],
             'panels' => [
                 [
@@ -161,7 +162,7 @@ class DashboardController extends Controller
                 ['label' => 'Floors visible', 'value' => Floor::query()->count(), 'tone' => 'neutral'],
             ],
             'actions' => [
-                ['label' => 'View Reservations', 'href' => route('reservations.index'), 'style' => 'primary'],
+                ['label' => 'Clients Reservations', 'href' => route('reservations.clients.index'), 'style' => 'primary'],
                 ['label' => 'Open Profile', 'href' => route('profile.edit'), 'style' => 'secondary'],
             ],
             'panels' => [

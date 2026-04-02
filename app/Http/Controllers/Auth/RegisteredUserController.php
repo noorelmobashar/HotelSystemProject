@@ -8,7 +8,9 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -21,7 +23,9 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Register');
+        return Inertia::render('Auth/Register', [
+            'countries' => $this->countries(),
+        ]);
     }
 
     /**
@@ -31,9 +35,12 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $countries = $this->countries();
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'country' => ['required', 'string', Rule::in($countries)],
             'avatar_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
@@ -45,6 +52,7 @@ class RegisteredUserController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
+            'country' => $request->country,
             'avatar_image' => $avatarPath,
             'password' => Hash::make($request->password),
         ]);
@@ -56,5 +64,44 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function countries(): array
+    {
+        return Cache::rememberForever('registration_countries_dropdown', function () {
+            return [
+                'Egypt',
+                'Saudi Arabia',
+                'United Arab Emirates',
+                'Jordan',
+                'Kuwait',
+                'Qatar',
+                'Bahrain',
+                'Oman',
+                'Lebanon',
+                'Iraq',
+                'Morocco',
+                'Algeria',
+                'Tunisia',
+                'Libya',
+                'Sudan',
+                'Yemen',
+                'United States',
+                'United Kingdom',
+                'Canada',
+                'Germany',
+                'France',
+                'Italy',
+                'Spain',
+                'Turkey',
+                'India',
+                'China',
+                'Japan',
+                'Australia',
+            ];
+        });
     }
 }

@@ -21,6 +21,8 @@ class ReservationPaymentController extends Controller
 {
     public function checkout(Request $request, int $roomId): HttpResponse|RedirectResponse
     {
+        $this->ensureApprovedClient($request);
+
         $room = Room::query()->whereKey($roomId)->firstOrFail();
 
         $validated = $request->validate([
@@ -124,6 +126,8 @@ class ReservationPaymentController extends Controller
 
     public function checkoutSuccess(Request $request): RedirectResponse
     {
+        $this->ensureApprovedClient($request);
+
         $validated = $request->validate([
             'session_id' => ['required', 'string'],
         ]);
@@ -341,5 +345,16 @@ class ReservationPaymentController extends Controller
                     ->orWhereNull('check_in_date')
                     ->orWhereNull('check_out_date');
             });
+    }
+
+    private function ensureApprovedClient(Request $request): void
+    {
+        $user = $request->user();
+
+        if (!$user?->hasRole('client')) {
+            return;
+        }
+
+        abort_unless($user->approved_at !== null, 403, 'Your client account is pending approval.');
     }
 }

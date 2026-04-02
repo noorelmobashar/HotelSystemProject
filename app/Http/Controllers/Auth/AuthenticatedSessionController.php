@@ -36,6 +36,10 @@ class AuthenticatedSessionController extends Controller
         // return redirect()->intended(route('dashboard', absolute: false));
         $user = Auth::user();
 
+        $user?->forceFill([
+            'last_login_at' => now(),
+        ])->save();
+
         if ($user->hasAnyRole(['admin', 'manager', 'receptionist', 'client'])) {
             return redirect()->route('dashboard');
         }

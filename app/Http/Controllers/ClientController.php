@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Notifications\ClientApprovedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -198,6 +199,7 @@ class ClientController extends Controller
             $client->approved_by = $request->user()->id;
             $client->approved_at = now();
             $client->save();
+            $client->notify(new ClientApprovedNotification());
         }
 
         if ($request->expectsJson() || $request->ajax()) {
@@ -210,6 +212,55 @@ class ClientController extends Controller
         return redirect()
             ->route('clients.index')
             ->with('success', 'Client approved successfully.');
+    }
+
+    public function myApprovedClients(Request $request): Response
+    {
+        abort_unless($request->user()?->hasRole('receptionist'), 403);
+
+        $validated = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:5', 'max:50'],
+            'search' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $perPage = (int) ($validated['per_page'] ?? 10);
+        $search = trim((string) ($validated['search'] ?? ''));
+        $receptionistId = $request->user()->id;
+
+        $clients = User::query()
+            ->role('client')
+            ->whereNotNull('approved_at')
+            ->where('approved_by', $receptionistId)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($nestedQuery) use ($search) {
+                    $nestedQuery
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('national_id', 'like', "%{$search}%")
+                        ->orWhere('gender', 'like', "%{$search}%");
+                });
+            })
+            ->latest('approved_at')
+            ->paginate($perPage)
+            ->through(fn (User $client) => [
+                'id' => $client->id,
+                'name' => $client->name,
+                'email' => $client->email,
+                'gender' => $client->gender,
+                'national_id' => $client->national_id,
+                'approved_at' => $client->approved_at?->format('Y-m-d H:i'),
+                'created_at' => $client->created_at?->format('Y-m-d H:i'),
+            ])
+            ->withQueryString();
+
+        return Inertia::render('Clients/MyApprovedClients', [
+            'clients' => $clients,
+            'filters' => [
+                'search' => $search,
+                'per_page' => $perPage,
+            ],
+        ]);
     }
 
     private function authorizeClientIndex(Request $request): void
@@ -226,7 +277,6 @@ class ClientController extends Controller
     {
         abort_unless($request->user()?->hasAnyRole(['admin', 'manager']), 403);
     }
-
     private function ensureClient(User $user): void
     {
         abort_unless($user->hasRole('client'), 404);
